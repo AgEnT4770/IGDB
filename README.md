@@ -10,7 +10,7 @@
 5-Youssef Mohamed Mahmoud
 
 # Project Name:
-IGDP (Internet Gaming Database) 
+IGDB (Internet Gaming Database) 
 
 # Project Idea:
 A game surfing app that includes game reviews, descriptions, requirements, and where to find and buy the game. 
