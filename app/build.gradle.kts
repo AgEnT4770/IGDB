@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.igdp"
+    namespace = "com.example.igdb"
     compileSdk {
         version = release(36)
     }

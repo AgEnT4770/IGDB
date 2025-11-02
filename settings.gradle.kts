@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "IGDP"
+rootProject.name = "IGDB"
 include(":app")
