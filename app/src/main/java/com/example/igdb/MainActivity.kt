@@ -66,8 +66,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import coil.compose.rememberAsyncImagePainter
+import com.example.igdb.UI.GameCard
+//import com.example.igdb.viewmodel.GameViewModel
+//import com.example.igdb.UI.GameCard
+import com.example.igdb.discover.DiscoverPage
 import com.example.igdb.ui.theme.IGDPTheme
 import com.example.igdb.ui.theme.White
+import com.example.igdb.ui.viewmodel.GameViewModel
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -304,36 +309,7 @@ fun ScrollContent(
     }
 }
 
-@Composable
-fun GameCard(game: Game, textColor : androidx.compose.ui.graphics.Color = White , onGameClicked: (Int) -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .width(120.dp)
-            .clickable { onGameClicked(game.id) }
-    ) {
-        Image(
-            painter = rememberAsyncImagePainter(
-                model = game.background_image,
-                placeholder = painterResource(id = R.drawable.gamingbook) // Placeholder image
-            ),
-            contentDescription = game.name,
-            modifier = Modifier
-                .height(160.dp)
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp)),
-            contentScale = ContentScale.Crop
-        )
-        Text(
-            text = game.name,
-            color = textColor,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(top = 8.dp),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-    }
-}
+
 
 @Preview(showSystemUi = true)
 @Composable

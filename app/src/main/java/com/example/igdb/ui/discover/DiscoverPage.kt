@@ -1,4 +1,4 @@
-package com.example.igdb
+package com.example.igdb.discover
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -26,6 +26,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.igdb.Genre
+import com.example.igdb.UI.GameCard
+import com.example.igdb.genres
+import com.example.igdb.model.Game
+import com.example.igdb.ui.viewmodel.GameViewModel
 
 @Composable
 fun DiscoverPage(
@@ -125,7 +130,7 @@ fun GenreChips(
 }
 
 @Composable
-fun GameGrid(games: List<Game>,onGameClicked: (Int) -> Unit) {
+fun GameGrid(games: List<Game>, onGameClicked: (Int) -> Unit) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -133,7 +138,7 @@ fun GameGrid(games: List<Game>,onGameClicked: (Int) -> Unit) {
         modifier = Modifier.fillMaxSize()
     ) {
         items(games) { game ->
-            GameCard(game,onGameClicked = onGameClicked)
+            GameCard(game, onGameClicked = onGameClicked)
         }
     }
 }
