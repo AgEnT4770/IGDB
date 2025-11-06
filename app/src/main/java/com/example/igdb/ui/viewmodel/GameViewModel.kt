@@ -8,6 +8,7 @@ import com.example.igdb.Genre
 import com.example.igdb.domain.usecase.GetGamesByGenreUseCase
 import com.example.igdb.domain.usecase.SearchGamesUseCase
 import com.example.igdb.domain.usecase.GetGameDetailsUseCase
+import com.example.igdb.domain.usecase.GetRelatedGamesUseCase
 import com.example.igdb.model.Game
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -16,7 +17,8 @@ import kotlinx.coroutines.launch
 class GameViewModel(
     private val getGamesByGenreUseCase: GetGamesByGenreUseCase,
     private val searchGamesUseCase: SearchGamesUseCase,
-    private val getGameDetailsUseCase: GetGameDetailsUseCase
+    private val getGameDetailsUseCase: GetGameDetailsUseCase,
+    private val getRelatedGamesUseCase: GetRelatedGamesUseCase
 ) : ViewModel() {
 
     // UI states
@@ -110,17 +112,13 @@ class GameViewModel(
     fun fetchRelatedGames(genreSlug: String) {
         viewModelScope.launch {
             try {
-                val response = apiService.getGames(
-                    apiKey = "6e5ea525d41242d3b765b9e83eba84e7",
-                    genres = genreSlug,
-                    pageSize = 10
-                )
-                relatedGames.value = response.results
+                relatedGames.value = getRelatedGamesUseCase(genreSlug)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
     }
+
 
     fun setInitialGenreForDiscover(genre: Genre) {
         initialDiscoverGenre.value = genre

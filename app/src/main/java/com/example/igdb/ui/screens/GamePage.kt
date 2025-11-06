@@ -1,4 +1,4 @@
-package com.example.igdb
+package com.example.igdb.ui.screens
 
 import android.text.Html
 import androidx.compose.animation.animateContentSize
@@ -60,7 +60,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
+import com.example.igdb.R
 import com.example.igdb.UI.GameCard
 import com.example.igdb.model.Game
 import com.example.igdb.model.GameGenre
@@ -122,7 +124,7 @@ fun GamePage(gameId: Int, viewModel: GameViewModel, onGameClicked: (Int) -> Unit
 fun GameDetails(
     modifier: Modifier = Modifier,
     game: Game,
-    viewModel: GameViewModel = GameViewModel(),
+    viewModel: GameViewModel = viewModel(),
     onGameClicked: (Int) -> Unit
 ) {
     LazyColumn(
@@ -145,7 +147,7 @@ fun GameDetails(
                         .height(300.dp)
                         .drawWithCache {
                             val gradient = Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8F)),
+                                colors = listOf(Color.Transparent, Black.copy(alpha = 0.8F)),
                                 startY = size.height / 3,
                                 endY = size.height
                             )
@@ -207,7 +209,7 @@ fun RatingText(modifier: Modifier = Modifier, text: String) {
         modifier = modifier
             .padding(8.dp)
             .clip(RoundedCornerShape(8.dp))
-            .background(Color.Black.copy(alpha = 0.9f))
+            .background(Black.copy(alpha = 0.9f))
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Icon(
@@ -234,7 +236,7 @@ fun RatingText(modifier: Modifier = Modifier, text: String) {
 fun ExpandableText(
     modifier: Modifier = Modifier,
     text: String,
-    color: Color = Color.Black,
+    color: Color = Black,
     maxLines: Int = 3
 ) {
     var isExpanded by remember { mutableStateOf(false) }
@@ -275,7 +277,7 @@ fun TopButtons(modifier: Modifier = Modifier) {
             Icon(
                 imageVector = Icons.Default.ArrowBackIosNew,
                 contentDescription = null,
-                tint = Color.Black,
+                tint = Black,
             )
 
         }
@@ -292,7 +294,7 @@ fun TopButtons(modifier: Modifier = Modifier) {
             Icon(
                 imageVector = Icons.Default.FavoriteBorder,
                 contentDescription = null,
-                tint = Color.Black,
+                tint = Black,
             )
 
         }

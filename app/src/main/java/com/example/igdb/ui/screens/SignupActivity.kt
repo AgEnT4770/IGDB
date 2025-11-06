@@ -1,4 +1,4 @@
-package com.example.igdb
+package com.example.igdb.ui.screens
 
 import android.content.Intent
 import android.os.Bundle
@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -43,26 +44,27 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.igdb.R
 import com.example.igdb.ui.theme.IGDPTheme
 import com.example.igdb.ui.theme.LightBlue
 import com.example.igdb.ui.theme.Orange
 import com.example.igdb.ui.theme.White
 
-class LoginActivity : ComponentActivity() {
+class SignupActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             IGDPTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    LoginDesign(modifier = Modifier.padding(innerPadding))
+                    SignupDesign(modifier = Modifier.padding(innerPadding))
                 }
             }
         }
@@ -70,7 +72,7 @@ class LoginActivity : ComponentActivity() {
 }
 
 @Composable
-fun LoginDesign(modifier: Modifier = Modifier) {
+fun SignupDesign(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     Box(
         modifier = modifier
@@ -105,7 +107,7 @@ fun LoginDesign(modifier: Modifier = Modifier) {
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = "LOGIN",
+                        text = "Sign Up",
                         style = MaterialTheme.typography.headlineLarge,
                         color = Color.White,
                         textAlign = TextAlign.Center,
@@ -113,22 +115,12 @@ fun LoginDesign(modifier: Modifier = Modifier) {
                     )
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    LoginCredentials()
-                    Text(
-                        text = "Forgot your Password?",
-                        color = Orange,
-                        textDecoration = TextDecoration.Underline,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 12.sp
-                    )
+                    SignupCredentials()
 
                     Spacer(modifier = Modifier.height(32.dp))
 
                     Button(
-                        onClick = {
-                            val intent = Intent(context, MainActivity::class.java)
-                            context.startActivity(intent)
-                        },
+                        onClick = {  },
                         modifier = Modifier
                             .width(108.dp)
                             .height(50.dp)
@@ -136,7 +128,7 @@ fun LoginDesign(modifier: Modifier = Modifier) {
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = LightBlue)
                     ) {
-                        Text("Login", color = Color.White)
+                        Text("Sign Up", color = Color.White)
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -151,7 +143,7 @@ fun LoginDesign(modifier: Modifier = Modifier) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(
                         onClick = {
-                            val intent = Intent(context, SignupActivity::class.java)
+                            val intent = Intent(context, LoginActivity::class.java)
                             context.startActivity(intent)
                         },
                         modifier = Modifier
@@ -161,7 +153,7 @@ fun LoginDesign(modifier: Modifier = Modifier) {
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = LightBlue)
                     ) {
-                        Text("Register", color = Color.White)
+                        Text("Login", color = Color.White)
                     }
                 }
             }
@@ -171,26 +163,53 @@ fun LoginDesign(modifier: Modifier = Modifier) {
 
 
 @Composable
-fun LoginCredentials() {
+fun SignupCredentials() {
+    var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     val gradColors = remember {
         Brush.linearGradient(listOf(Orange , Color.Magenta , White))
     }
+
     OutlinedTextField(
-        value = email,
-        onValueChange = { email = it },
-        label = { Text("Email") },
+        value = name,
+        onValueChange = { name = it },
+        label = { Text("Full Name") },
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Text),
+        textStyle = TextStyle(
+            brush = gradColors,
+            fontSize = 16.sp),
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = Color.Cyan,
             unfocusedBorderColor = Color.LightGray,
             focusedLabelColor = Color.Cyan,
             unfocusedLabelColor = Color.LightGray
         ),
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth()
+    )
+
+    Spacer(modifier = Modifier.height(16.dp))
+
+    OutlinedTextField(
+        value = email,
+        onValueChange = { email = it },
+        label = { Text("Email") },
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Email),
         textStyle = TextStyle(
             brush = gradColors,
             fontSize = 16.sp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = Color.Cyan,
+            unfocusedBorderColor = Color.LightGray,
+            focusedLabelColor = Color.Cyan,
+            unfocusedLabelColor = Color.LightGray
+        ),
+
         singleLine = true,
         modifier = Modifier.fillMaxWidth()
     )
@@ -201,12 +220,8 @@ fun LoginCredentials() {
         value = password,
         onValueChange = { password = it },
         label = { Text("Password") },
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = Color.Cyan,
-            unfocusedBorderColor = Color.LightGray,
-            focusedLabelColor = Color.Cyan,
-            unfocusedLabelColor = Color.LightGray
-        ),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Password),
         visualTransformation = if (passwordVisible)
             VisualTransformation.None
         else
@@ -229,16 +244,63 @@ fun LoginCredentials() {
         textStyle = TextStyle(
             brush = gradColors,
             fontSize = 16.sp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = Color.Cyan,
+            unfocusedBorderColor = Color.LightGray,
+            focusedLabelColor = Color.Cyan,
+            unfocusedLabelColor = Color.LightGray
+        ),
         singleLine = true,
         modifier = Modifier.fillMaxWidth()
     )
+    Spacer(modifier = Modifier.height(16.dp))
+
+    OutlinedTextField(
+        value = confirmPassword,
+        onValueChange = { confirmPassword = it },
+        label = { Text("Confirm Password") },
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Password),
+        visualTransformation = if (passwordVisible)
+            VisualTransformation.None
+        else
+            PasswordVisualTransformation(),
+        trailingIcon = {
+            val image = if (passwordVisible)
+                Icons.Default.Visibility
+            else
+                Icons.Default.VisibilityOff
+
+            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                Icon(
+                    imageVector = image,
+                    contentDescription = if (passwordVisible) "Hide password"
+                    else "Show password",
+                    tint = if (passwordVisible) Color.White else Color.LightGray
+                )
+            }
+        },
+        textStyle = TextStyle(
+            brush = gradColors,
+            fontSize = 16.sp),
+
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = Color.Cyan,
+            unfocusedBorderColor = Color.LightGray,
+            focusedLabelColor = Color.Cyan,
+            unfocusedLabelColor = Color.LightGray
+        ),
+        singleLine = true,
+        modifier = Modifier.fillMaxWidth()
+    )
+
 }
 
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun LoginPreview() {
+fun SignupPreview() {
     IGDPTheme {
-        LoginDesign()
+        SignupDesign()
     }
 }

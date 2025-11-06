@@ -14,13 +14,13 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.IGDB">
         <activity
-            android:name=".SignupActivity"
+            android:name=".ui.screens.SignupActivity"
             android:exported="false"
             android:label="@string/title_activity_signup"
             android:theme="@style/Theme.IGDB" >
         </activity>
         <activity
-            android:name=".LoginActivity"
+            android:name=".ui.screens.LoginActivity"
             android:exported="true"
             android:label="@string/title_activity_login"
             android:theme="@style/Theme.IGDB" >

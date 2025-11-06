@@ -48,7 +48,6 @@ fun DiscoverPage(
         gameViewModel.fetchGamesByGenre(selectedGenre.name, selectedGenre.slug)
     }
 
-    // Consume the initial genre after it has been used
     LaunchedEffect(initialGenre) {
         if (initialGenre != null) {
             gameViewModel.consumeInitialGenre()
