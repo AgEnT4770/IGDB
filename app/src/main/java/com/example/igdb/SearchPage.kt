@@ -25,7 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.igdb.ui.theme.IGDPTheme
+import com.example.igdb.ui.theme.IGDBTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -105,7 +105,7 @@ fun SearchPage(
 @Preview(showSystemUi = true)
 @Composable
 fun SearchPreview() {
-    IGDPTheme {
+    IGDBTheme {
         SearchPage()
     }
 }

@@ -11,7 +11,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.igdp"
+        applicationId = "com.example.igdb"
         minSdk = 29
         targetSdk = 36
         versionCode = 1

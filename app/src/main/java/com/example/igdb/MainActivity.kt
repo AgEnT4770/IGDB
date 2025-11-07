@@ -66,7 +66,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import coil.compose.rememberAsyncImagePainter
-import com.example.igdb.ui.theme.IGDPTheme
+import com.example.igdb.ui.theme.IGDBTheme
 import com.example.igdb.ui.theme.White
 import kotlinx.coroutines.launch
 
@@ -75,7 +75,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            IGDPTheme {
+            IGDBTheme {
                 AppNavigation()
             }
         }
@@ -338,7 +338,7 @@ fun GameCard(game: Game, textColor : androidx.compose.ui.graphics.Color = White 
 @Preview(showSystemUi = true)
 @Composable
 fun GreetingPreview() {
-    IGDPTheme {
+    IGDBTheme {
         AppNavigation()
     }
 }

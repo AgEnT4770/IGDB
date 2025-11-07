@@ -54,7 +54,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.igdb.ui.theme.IGDPTheme
+import com.example.igdb.ui.theme.IGDBTheme
 import com.example.igdb.ui.theme.LightBlue
 import com.example.igdb.ui.theme.Orange
 import com.example.igdb.ui.theme.White
@@ -64,7 +64,7 @@ class LoginActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            IGDPTheme {
+            IGDBTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     LoginDesign(modifier = Modifier.padding(innerPadding))
                 }
@@ -251,7 +251,7 @@ fun LoginCredentials() {
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun LoginPreview() {
-    IGDPTheme {
+    IGDBTheme {
         LoginDesign()
     }
 }
