@@ -61,7 +61,10 @@ import com.example.igdb.ui.theme.IGDBTheme
 import com.example.igdb.ui.theme.LightBlue
 import com.example.igdb.ui.theme.Orange
 import com.example.igdb.ui.theme.White
+import com.google.firebase.auth.FirebaseAuth
 
+
+lateinit var auth: FirebaseAuth
 class SignupActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
