@@ -364,7 +364,7 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "OR",
-            color = Orange,
+            color = Color.Magenta,
             fontWeight = FontWeight.Bold,
             fontSize = 20.sp,
             modifier = Modifier

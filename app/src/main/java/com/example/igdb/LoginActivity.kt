@@ -60,6 +60,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.isVisible
+import com.example.igdb.ui.theme.DarkBlue
 import com.example.igdb.ui.theme.IGDBTheme
 import com.example.igdb.ui.theme.LightBlue
 import com.example.igdb.ui.theme.Orange
@@ -246,7 +247,7 @@ fun LoginCredentials(auth: FirebaseAuth? = null) {
         )
         Text(
             text = "Forgot your Password?",
-            color = Orange,
+            color = Color.Magenta,
             textDecoration = TextDecoration.Underline,
             fontWeight = FontWeight.SemiBold,
             fontSize = 12.sp,
@@ -289,7 +290,7 @@ fun LoginCredentials(auth: FirebaseAuth? = null) {
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "OR",
-            color = Orange,
+            color = Color.Magenta,
             fontWeight = FontWeight.Bold,
             fontSize = 20.sp,
             modifier = Modifier
