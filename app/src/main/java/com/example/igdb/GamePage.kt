@@ -50,7 +50,6 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Color.Companion.Black
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
@@ -62,8 +61,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import com.example.igdb.ui.theme.Gold
-import com.example.igdb.ui.theme.Gray
-import com.example.igdb.ui.theme.White
 
 
 @Composable
@@ -73,7 +70,7 @@ fun IndeterminateCircularIndicator(loading: Boolean) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Black),
+            .background(MaterialTheme.colorScheme.background),
         contentAlignment = Alignment.Center
     ) {
         CircularProgressIndicator(
@@ -98,9 +95,9 @@ fun GamePage(gameId: Int, viewModel: GameViewModel, onGameClicked: (Int) -> Unit
 
     gameDetails?.let { game ->
         loading = false
-        Scaffold { innerPadding ->
+        Scaffold {
             GameDetails(
-                modifier = Modifier.padding(innerPadding),
+                modifier = Modifier.padding(it),
                 game = game,
                 onGameClicked = onGameClicked,
                 viewModel = viewModel
@@ -117,9 +114,10 @@ fun GameDetails(
     viewModel: GameViewModel = GameViewModel(),
     onGameClicked: (Int) -> Unit
 ) {
+    val backgroundColor = MaterialTheme.colorScheme.background
     LazyColumn(
         modifier = modifier
-            .background(color = Black)
+            .background(color = backgroundColor)
     ) {
         item {
             Box(
@@ -137,7 +135,7 @@ fun GameDetails(
                         .height(300.dp)
                         .drawWithCache {
                             val gradient = Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8F)),
+                                colors = listOf(Color.Transparent, backgroundColor.copy(alpha = 0.8F)),
                                 startY = size.height / 3,
                                 endY = size.height
                             )
@@ -164,7 +162,7 @@ fun GameDetails(
                     Text(
                         text = game.name,
                         style = MaterialTheme.typography.headlineMedium,
-                        color = White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         maxLines = 2,
                         textAlign = TextAlign.Start,
                         modifier = Modifier
@@ -174,7 +172,7 @@ fun GameDetails(
                     Text(
                         text = game.genres?.joinToString(separator = "|") { it.name } ?: "",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         maxLines = 2,
                         modifier = Modifier
                             .padding(start = 12.dp, bottom = 12.dp)
@@ -199,7 +197,7 @@ fun RatingText(modifier: Modifier = Modifier, text: String) {
         modifier = modifier
             .padding(8.dp)
             .clip(RoundedCornerShape(8.dp))
-            .background(Color.Black.copy(alpha = 0.9f))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Icon(
@@ -226,7 +224,7 @@ fun RatingText(modifier: Modifier = Modifier, text: String) {
 fun ExpandableText(
     modifier: Modifier = Modifier,
     text: String,
-    color: Color = Color.Black,
+    color: Color = MaterialTheme.colorScheme.onSurface,
     maxLines: Int = 3
 ) {
     var isExpanded by remember { mutableStateOf(false) }
@@ -259,7 +257,7 @@ fun TopButtons(modifier: Modifier = Modifier) {
             onClick = { /*TODO*/ },
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surface,
             ),
             contentPadding = PaddingValues(0.dp),
             modifier = Modifier.size(48.dp)
@@ -267,7 +265,7 @@ fun TopButtons(modifier: Modifier = Modifier) {
             Icon(
                 imageVector = Icons.Default.ArrowBackIosNew,
                 contentDescription = null,
-                tint = Color.Black,
+                tint = MaterialTheme.colorScheme.onSurface,
             )
 
         }
@@ -276,7 +274,7 @@ fun TopButtons(modifier: Modifier = Modifier) {
             onClick = { /*TODO*/ },
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surface,
             ),
             contentPadding = PaddingValues(0.dp),
             modifier = Modifier.size(48.dp)
@@ -284,7 +282,7 @@ fun TopButtons(modifier: Modifier = Modifier) {
             Icon(
                 imageVector = Icons.Default.FavoriteBorder,
                 contentDescription = null,
-                tint = Color.Black,
+                tint = MaterialTheme.colorScheme.onSurface,
             )
 
         }
@@ -299,27 +297,26 @@ fun InfoCard(
     viewModel: GameViewModel,
     onGameClicked: (Int) -> Unit
 ) {
-    var isExpanded by remember { mutableStateOf(false) }
     val description = remember(game.description) {
         Html.fromHtml(game.description ?: "", Html.FROM_HTML_MODE_LEGACY).toString()
     }
     Card(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = White
+            containerColor = MaterialTheme.colorScheme.surface
         )
 
     ) {
         Text(
             text = "About This Game",
-            color = Black,
+            color = MaterialTheme.colorScheme.onSurface,
             fontSize = 20.sp,
             fontWeight = FontWeight.SemiBold,
             fontFamily = FontFamily.SansSerif,
             modifier = Modifier
                 .padding(start = 12.dp, top = 16.dp, bottom = 12.dp)
         )
-        ExpandableText(text = description, color = Gray)
+        ExpandableText(text = description, color = MaterialTheme.colorScheme.onSurfaceVariant)
         RelatedGames(
             viewModel = viewModel,
             game = game,
@@ -397,7 +394,7 @@ fun ReviewCard(modifier: Modifier = Modifier) {
             ) {
                 Text(
                     text = "Mohamed Ibrahim",
-                    color = Black,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier
@@ -439,7 +436,7 @@ fun RelatedGames(
         Column {
             Text(
                 text = "Related Games",
-                color = Black,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.SemiBold,
                 fontFamily = FontFamily.SansSerif,
@@ -457,15 +454,12 @@ fun RelatedGames(
                 items(filterRelatedGames) { relatedGame ->
                     GameCard(
                         game = relatedGame,
-                        onGameClicked = onGameClicked,
-                        textColor = Black
+                        onGameClicked = onGameClicked
                     )
                 }
             }
         }
     }
-
-
 }
 
 
