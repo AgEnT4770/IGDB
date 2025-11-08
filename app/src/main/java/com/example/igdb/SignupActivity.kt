@@ -1,5 +1,6 @@
 package com.example.igdb
 
+import android.R.attr.onClick
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -9,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,6 +47,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -59,6 +62,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.igdb.ui.theme.DarkBlue
 import com.example.igdb.ui.theme.IGDBTheme
 import com.example.igdb.ui.theme.LightBlue
 import com.example.igdb.ui.theme.Orange
@@ -68,8 +72,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 
 
-lateinit var auth: FirebaseAuth
 class SignupActivity : ComponentActivity() {
+    lateinit var auth: FirebaseAuth
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -77,7 +81,7 @@ class SignupActivity : ComponentActivity() {
         setContent {
             IGDBTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    SignupDesign(modifier = Modifier.padding(innerPadding))
+                    SignupDesign(modifier = Modifier.padding(innerPadding) , auth)
                 }
             }
         }
@@ -87,18 +91,18 @@ class SignupActivity : ComponentActivity() {
 
 }
 
-fun addUser(context: Context, email: String, pass: String) {
+fun addUser(auth: FirebaseAuth, context: Context, email: String, pass: String) {
     auth.createUserWithEmailAndPassword(email, pass)
         .addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                verifyEmail(context)
+                verifyEmail(auth ,context)
             } else {
                 Toast.makeText(context, task.exception?.message ?: "Signup failed", Toast.LENGTH_SHORT).show()
             }
         }
 }
 
-private fun verifyEmail(context: Context) {
+private fun verifyEmail(auth: FirebaseAuth, context: Context) {
     val user = Firebase.auth.currentUser
     user?.sendEmailVerification()?.addOnCompleteListener { task ->
         if (task.isSuccessful) {
@@ -109,7 +113,7 @@ private fun verifyEmail(context: Context) {
 }
 
 @Composable
-fun SignupDesign(modifier: Modifier = Modifier) {
+fun SignupDesign(modifier: Modifier = Modifier ,auth: FirebaseAuth? = null) {
     Box(
         modifier = modifier
             .fillMaxSize(),
@@ -131,7 +135,7 @@ fun SignupDesign(modifier: Modifier = Modifier) {
                 painter = painterResource(R.drawable.app_icn),
                 contentDescription = "IGDB Logo",
                 modifier = Modifier
-                    .padding(28.dp)
+                    .padding(top = 28.dp , bottom = 16.dp)
                     .size(100.dp)
                     .clip(CircleShape)
                     .border(2.dp, Color.White.copy(alpha = 0.6f), CircleShape)
@@ -150,7 +154,7 @@ fun SignupDesign(modifier: Modifier = Modifier) {
                         .padding(24.dp)
                         .fillMaxWidth(),
                 ) {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
                         text = "Sign Up",
@@ -159,9 +163,9 @@ fun SignupDesign(modifier: Modifier = Modifier) {
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    SignupCredentials()
+                    SignupCredentials(auth)
 
                 }
             }
@@ -171,7 +175,7 @@ fun SignupDesign(modifier: Modifier = Modifier) {
 
 
 @Composable
-fun SignupCredentials() {
+fun SignupCredentials(auth: FirebaseAuth? = null) {
     val context = LocalContext.current
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
@@ -180,6 +184,7 @@ fun SignupCredentials() {
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
     val gradColors = remember {
         Brush.linearGradient(listOf(Orange , Color.Magenta , White))
     }
@@ -228,7 +233,7 @@ fun SignupCredentials() {
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
             value = email,
@@ -250,7 +255,7 @@ fun SignupCredentials() {
             modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
             value = password,
@@ -289,7 +294,7 @@ fun SignupCredentials() {
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
             value = confirmPassword,
@@ -329,46 +334,32 @@ fun SignupCredentials() {
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(28.dp))
 
-        Button(
-            onClick = {
-                when {
-                    email.isBlank() ->
-                        Toast.makeText(context, "Missing Email", Toast.LENGTH_SHORT).show()
 
-                    firstName.isBlank() ->
-                        Toast.makeText(context, "Missing First Name", Toast.LENGTH_SHORT).show()
-
-                    lastName.isBlank() ->
-                        Toast.makeText(context, "Missing Last Name", Toast.LENGTH_SHORT).show()
-
-                    password.isBlank() ->
-                        Toast.makeText(context, "Missing Password", Toast.LENGTH_SHORT).show()
-
-                    confirmPassword.isBlank() ->
-                        Toast.makeText(context, "Missing Password Confirmation", Toast.LENGTH_SHORT).show()
-
-                    password != confirmPassword ->
-                        Toast.makeText(context, "Passwords don't match", Toast.LENGTH_SHORT).show()
-
-                    password.length < 8 ->
-                        Toast.makeText(context, "Minimum password length is 8", Toast.LENGTH_SHORT).show()
-
-                    else -> {
-                        addUser(context, email, password)
+        Image(
+            painter = painterResource(id = R.drawable.signup1), // حط هنا صورة الزر عندك في drawable
+            contentDescription = "Sign Up Button",
+            modifier = Modifier
+                .width(140.dp)
+                .height(50.dp)
+                .align(Alignment.CenterHorizontally)
+                .clickable {
+                    when {
+                        email.isBlank() -> Toast.makeText(context, "Missing Email", Toast.LENGTH_SHORT).show()
+                        firstName.isBlank() -> Toast.makeText(context, "Missing First Name", Toast.LENGTH_SHORT).show()
+                        lastName.isBlank() -> Toast.makeText(context, "Missing Last Name", Toast.LENGTH_SHORT).show()
+                        password.isBlank() -> Toast.makeText(context, "Missing Password", Toast.LENGTH_SHORT).show()
+                        confirmPassword.isBlank() -> Toast.makeText(context, "Missing Password Confirmation", Toast.LENGTH_SHORT).show()
+                        password != confirmPassword -> Toast.makeText(context, "Passwords don't match", Toast.LENGTH_SHORT).show()
+                        password.length < 8 -> Toast.makeText(context, "Minimum password length is 8", Toast.LENGTH_SHORT).show()
+                        else -> {
+                            isLoading = true
+                            addUser(auth!!, context, email, password)
+                        }
                     }
                 }
-            },
-            modifier = Modifier
-                .width(108.dp)
-                .height(50.dp)
-                .align(Alignment.CenterHorizontally),
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = LightBlue)
-        ) {
-            Text("Sign Up", color = Color.White)
-        }
+        )
 
         Spacer(modifier = Modifier.height(8.dp))
         Text(
@@ -380,19 +371,28 @@ fun SignupCredentials() {
                 .align(Alignment.CenterHorizontally),
             )
         Spacer(modifier = Modifier.height(8.dp))
-        Button(
-            onClick = {
-                val intent = Intent(context, LoginActivity::class.java)
-                context.startActivity(intent)
-            },
+
+        Image(
+            painter = painterResource(id = R.drawable.login),
+            contentDescription = "Login Button",
             modifier = Modifier
-                .width(108.dp)
+                .width(140.dp)
                 .height(50.dp)
-                .align(Alignment.CenterHorizontally),
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = LightBlue)
-        ) {
-            Text("Login", color = Color.White)
+                .align(Alignment.CenterHorizontally)
+                .clickable {
+                    val intent = Intent(context, LoginActivity::class.java)
+                    context.startActivity(intent)
+                }
+        )
+        if (isLoading) {
+            androidx.compose.material3.LinearProgressIndicator(
+                color = Color.Cyan,
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .fillMaxWidth()
+                    .height(2.dp)
+                    .align(Alignment.CenterHorizontally)
+            )
         }
     }
 

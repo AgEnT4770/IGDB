@@ -25,3 +25,5 @@ val Gray = Color(0xFF808080)
 val Orange = Color(0xFFF64C52)
 
 val LightBlue = Color(0xFF3F51B5)
+val DarkBlue = Color(0xFF040B4B)
+
