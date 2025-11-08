@@ -4,8 +4,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -14,17 +16,22 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Explore
@@ -37,7 +44,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
@@ -51,13 +60,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.util.lerp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavType
@@ -68,7 +82,9 @@ import androidx.navigation.navArgument
 import coil.compose.rememberAsyncImagePainter
 import com.example.igdb.ui.theme.IGDBTheme
 import com.example.igdb.ui.theme.White
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.absoluteValue
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -143,6 +159,8 @@ fun MainScreen(navController: NavController, gameViewModel: GameViewModel = view
     val pagerState = rememberPagerState(pageCount = { navItems.size })
     val coroutineScope = rememberCoroutineScope()
     var userScrollEnabled by remember { mutableStateOf(true) }
+    val systemNavBarPadding = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
+    val bottomPadding = systemNavBarPadding + 16.dp
 
     LaunchedEffect(pagerState.currentPage) {
         userScrollEnabled = true
@@ -178,17 +196,32 @@ fun MainScreen(navController: NavController, gameViewModel: GameViewModel = view
             )
         },
         bottomBar = {
-            Box(modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 12.dp)) {
-                NavigationBar(modifier = Modifier.clip(RoundedCornerShape(24.dp))) {
+            Box(modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = bottomPadding)) {
+                NavigationBar(
+                    modifier = Modifier
+                        .height(80.dp) // Increased height for a better look
+                        .clip(RoundedCornerShape(16.dp)),
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f)
+                ) {
                     navItems.forEachIndexed { index, item ->
+                        val isSelected = pagerState.currentPage == index
                         NavigationBarItem(
-                            icon = { Icon(navIcons[index], contentDescription = item) },
-                            selected = pagerState.currentPage == index,
+                            icon = { Icon(navIcons[index], contentDescription = item, modifier = Modifier.size(28.dp)) },
+                            label = { Text(item) },
+                            selected = isSelected,
+                            alwaysShowLabel = isSelected,
                             onClick = {
                                 coroutineScope.launch {
                                     pagerState.animateScrollToPage(index)
                                 }
-                            }
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            )
                         )
                     }
                 }
@@ -197,12 +230,14 @@ fun MainScreen(navController: NavController, gameViewModel: GameViewModel = view
     ) { innerPadding ->
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(top = 8.dp),
             userScrollEnabled = userScrollEnabled
         ) { page ->
             when (page) {
                 0 -> ScrollContent(
-                    innerPadding = innerPadding,
                     gameViewModel = gameViewModel,
                     onUserInteractingWithLazyRow = { isInteracting ->
                         userScrollEnabled = !isInteracting
@@ -221,28 +256,28 @@ fun MainScreen(navController: NavController, gameViewModel: GameViewModel = view
                     }
                 )
                 1 -> SearchPage(
-                    modifier = Modifier.padding(innerPadding),
+                    modifier = Modifier,
                     gameViewModel = gameViewModel,
                     onGameClicked = {
                         navController.navigate("gameDetails/$it")
                     }
                 )
                 2 -> DiscoverPage(
-                    modifier = Modifier.padding(innerPadding),
+                    modifier = Modifier,
                     gameViewModel = gameViewModel,
                     onGameClicked = {
                         navController.navigate("gameDetails/$it")
                     }
                 )
-                3 -> ProfilePage(modifier = Modifier.padding(innerPadding))
+                3 -> ProfilePage(modifier = Modifier)
             }
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ScrollContent(
-    innerPadding: PaddingValues,
     gameViewModel: GameViewModel,
     onUserInteractingWithLazyRow: (Boolean) -> Unit,
     onShowMoreClicked: (String) -> Unit,
@@ -255,48 +290,112 @@ fun ScrollContent(
     val gamesByCategory = gameViewModel.games.value
 
     LazyColumn(
-        modifier = Modifier.padding(innerPadding)
+        modifier = Modifier
     ) {
-        gamesByCategory.forEach { (category, games) ->
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = category,
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                    Text(
-                        text = "Show more ->",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.clickable { onShowMoreClicked(category) }
-                    )
+        item {
+            val trendingGames = gamesByCategory["Trending"] ?: emptyList()
+            if (trendingGames.isNotEmpty()) {
+                val pagerState = rememberPagerState(pageCount = { trendingGames.size })
+
+                LaunchedEffect(pagerState) {
+                    while (true) {
+                        delay(3000) // Adjust the delay as needed
+                        if (pagerState.pageCount > 0) {
+                            pagerState.animateScrollToPage((pagerState.currentPage + 1) % pagerState.pageCount)
+                        }
+                    }
                 }
-            }
-            item {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.pointerInput(Unit) {
-                        detectTapGestures(
-                            onPress = {
-                                onUserInteractingWithLazyRow(true)
-                                try {
-                                    awaitRelease()
-                                } finally {
-                                    onUserInteractingWithLazyRow(false)
-                                }
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    HorizontalPager(
+                        state = pagerState,
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(320.dp)
+                    ) { page ->
+                        val game = trendingGames[page]
+                        val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
+
+                        TrendingGameCard(
+                            game = game, 
+                            onGameClicked = onGameClicked,
+                            modifier = Modifier.graphicsLayer {
+                                val scale = lerp(1f, 0.85f, pageOffset.coerceIn(0f, 1f))
+                                scaleX = scale
+                                scaleY = scale
+
+                                alpha = lerp(1f, 0.5f, pageOffset.coerceIn(0f, 1f))
                             }
                         )
                     }
-                ) {
-                    items(games) { game ->
-                        GameCard(game, onGameClicked = onGameClicked)
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        repeat(pagerState.pageCount) { iteration ->
+                            val color = if (pagerState.currentPage == iteration) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                            Box(
+                                modifier = Modifier
+                                    .padding(2.dp)
+                                    .clip(CircleShape)
+                                    .background(color)
+                                    .size(8.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        gamesByCategory.forEach { (category, games) ->
+            if (category != "Trending") {
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = category,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                        Text(
+                            text = "Show more ->",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.clickable { onShowMoreClicked(category) }
+                        )
+                    }
+                }
+                item {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.pointerInput(Unit) {
+                            detectTapGestures(
+                                onPress = {
+                                    onUserInteractingWithLazyRow(true)
+                                    try {
+                                        awaitRelease()
+                                    } finally {
+                                        onUserInteractingWithLazyRow(false)
+                                    }
+                                }
+                            )
+                        }
+                    ) {
+                        items(games) { game ->
+                            GameCard(game, onGameClicked = onGameClicked)
+                        }
                     }
                 }
             }
@@ -304,13 +403,14 @@ fun ScrollContent(
     }
 }
 
+
 @Composable
-fun GameCard(game: Game, textColor : androidx.compose.ui.graphics.Color = White , onGameClicked: (Int) -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .width(120.dp)
+fun TrendingGameCard(game: Game, onGameClicked: (Int) -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
             .clickable { onGameClicked(game.id) }
+            .clip(RoundedCornerShape(16.dp))
     ) {
         Image(
             painter = rememberAsyncImagePainter(
@@ -318,15 +418,87 @@ fun GameCard(game: Game, textColor : androidx.compose.ui.graphics.Color = White 
                 placeholder = painterResource(id = R.drawable.gamingbook) // Placeholder image
             ),
             contentDescription = game.name,
-            modifier = Modifier
-                .height(160.dp)
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp)),
+            modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .background(Color.Black.copy(alpha = 0.6f))
+                .padding(8.dp)
+                .fillMaxWidth()
+        ) {
+            Text(
+                text = game.name,
+                color = White,
+                style = MaterialTheme.typography.headlineSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        game.rating?.let {
+            Surface(
+                color = Color.Black.copy(alpha = 0.8f),
+                shape = RoundedCornerShape(bottomStart = 8.dp, topEnd = 8.dp),
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp)
+            ) {
+                Text(
+                    text = String.format("%.1f", it),
+                    color = White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
+        }
+    }
+}
+
+
+@Composable
+fun GameCard(game: Game, onGameClicked: (Int) -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .width(120.dp)
+            .clickable { onGameClicked(game.id) }
+    ) {
+        Box {
+            Image(
+                painter = rememberAsyncImagePainter(
+                    model = game.background_image,
+                    placeholder = painterResource(id = R.drawable.gamingbook) // Placeholder image
+                ),
+                contentDescription = game.name,
+                modifier = Modifier
+                    .height(160.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Crop
+            )
+            game.rating?.let {
+                Surface(
+                    color = Color.Black.copy(alpha = 0.8f),
+                    shape = RoundedCornerShape(bottomStart = 8.dp, topEnd = 8.dp),
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(4.dp)
+                ) {
+                    Text(
+                        text = String.format("%.1f", it),
+                        color = White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                    )
+                }
+            }
+        }
         Text(
             text = game.name,
-            color = textColor,
+            color = MaterialTheme.colorScheme.onSurface,
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(top = 8.dp),
             maxLines = 1,
