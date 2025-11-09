@@ -1,5 +1,6 @@
 package com.example.igdb.ui.theme
 
+import androidx.compose.runtime.Stable
 import androidx.compose.ui.graphics.Color
 
 val Purple80 = Color(0xFFD0BCFF)
@@ -22,8 +23,8 @@ val Gray = Color(0xFF808080)
 
 
 
+val violet = Color(0xFFEA76EA)
+
 val Orange = Color(0xFFF64C52)
 
-val LightBlue = Color(0xFF3F51B5)
-val DarkBlue = Color(0xFF040B4B)
 

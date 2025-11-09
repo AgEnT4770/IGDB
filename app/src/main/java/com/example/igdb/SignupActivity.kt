@@ -62,11 +62,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.igdb.ui.theme.DarkBlue
 import com.example.igdb.ui.theme.IGDBTheme
-import com.example.igdb.ui.theme.LightBlue
 import com.example.igdb.ui.theme.Orange
 import com.example.igdb.ui.theme.White
+import com.example.igdb.ui.theme.violet
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
@@ -364,7 +363,7 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "OR",
-            color = Color.Magenta,
+            color = violet,
             fontWeight = FontWeight.Bold,
             fontSize = 20.sp,
             modifier = Modifier
