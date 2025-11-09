@@ -78,7 +78,7 @@ class GameViewModel : ViewModel() {
         }
     }
 
-    fun fetchGamesByGenre(genreName: String, genreSlug: String) {
+    fun fetchGamesByGenreAndSearch(genreName: String, genreSlug: String , query: String) {
         viewModelScope.launch {
             isLoading.value = true
             try {
@@ -87,7 +87,8 @@ class GameViewModel : ViewModel() {
                     apiKey = "6e5ea525d41242d3b765b9e83eba84e7",
                     genres = if (!isTrending) genreSlug else null,
                     ordering = if (isTrending) genreSlug else null,
-                    pageSize = if (isTrending) 10 else 40
+                    pageSize = if (isTrending) 10 else 40 ,
+                    search = query,
                 )
 
                 val currentMap = games.value.toMutableMap()
