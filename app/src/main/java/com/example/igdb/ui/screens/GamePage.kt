@@ -63,12 +63,12 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.example.igdb.R
-import com.example.igdb.UI.GameCard
 import com.example.igdb.model.Game
 import com.example.igdb.model.GameGenre
 import com.example.igdb.model.Platform
 import com.example.igdb.model.PlatformEntry
 import com.example.igdb.model.Requirements
+import com.example.igdb.ui.components.gamecard.GameCard
 //import com.example.igdb.viewmodel.GameViewModel
 import com.example.igdb.ui.theme.Gold
 import com.example.igdb.ui.theme.Gray

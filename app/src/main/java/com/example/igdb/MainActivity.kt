@@ -62,11 +62,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.igdb.UI.GameCard
+//import com.example.igdb.UI.GameCard
 //import com.example.igdb.viewmodel.GameViewModel
 //import com.example.igdb.UI.GameCard
 import com.example.igdb.discover.DiscoverPage
 import com.example.igdb.ui.screens.GamePage
+import com.example.igdb.ui.components.gamecard.GameCard
 import com.example.igdb.ui.screens.ProfilePage
 import com.example.igdb.ui.theme.IGDPTheme
 import com.example.igdb.ui.viewmodel.GameViewModel
@@ -169,7 +170,7 @@ fun MainScreen(navController: NavController, gameViewModel: GameViewModel = view
                         )
                         Spacer(modifier = Modifier.width(20.dp))
                         Text(
-                            "Home",
+                            text = navItems[pagerState.currentPage],
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )

@@ -1,4 +1,4 @@
-package com.example.igdb.UI
+package com.example.igdb.ui.components.gamecard
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable

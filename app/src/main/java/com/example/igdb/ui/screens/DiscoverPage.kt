@@ -27,9 +27,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.igdb.Genre
-import com.example.igdb.UI.GameCard
 import com.example.igdb.genres
 import com.example.igdb.model.Game
+import com.example.igdb.ui.components.gamecard.GameCard
 import com.example.igdb.ui.viewmodel.GameViewModel
 
 @Composable
