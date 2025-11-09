@@ -25,8 +25,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -45,7 +43,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -59,11 +56,8 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.view.isVisible
 import com.example.igdb.ui.theme.IGDBTheme
 import com.example.igdb.ui.theme.Orange
-import com.example.igdb.ui.theme.White
-import com.example.igdb.ui.theme.violet
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
@@ -143,13 +137,13 @@ fun LoginDesign(modifier: Modifier = Modifier , auth: FirebaseAuth? = null) {
                     .padding(top = 28.dp , bottom = 16.dp)
                     .size(100.dp)
                     .clip(CircleShape)
-                    .border(2.dp, Color.White.copy(alpha = 0.6f), CircleShape)
+                    .border(2.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f), CircleShape)
             )
             Card(
 
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color.Black.copy(alpha = 0.6f)
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
                 ),
 
                 ) {
@@ -163,7 +157,7 @@ fun LoginDesign(modifier: Modifier = Modifier , auth: FirebaseAuth? = null) {
                     Text(
                         text = "LOGIN",
                         style = MaterialTheme.typography.headlineLarge,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -184,8 +178,10 @@ fun LoginCredentials(auth: FirebaseAuth? = null) {
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
-    val gradColors = remember {
-        Brush.linearGradient(listOf(Orange , Color.Magenta , White))
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val secondaryColor = MaterialTheme.colorScheme.secondary
+    val gradColors = remember(primaryColor, secondaryColor) {
+        Brush.linearGradient(listOf(Orange, primaryColor, secondaryColor))
     }
     Column {
         OutlinedTextField(
@@ -195,10 +191,10 @@ fun LoginCredentials(auth: FirebaseAuth? = null) {
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.Cyan,
-                unfocusedBorderColor = Color.LightGray,
-                focusedLabelColor = Color.Cyan,
-                unfocusedLabelColor = Color.LightGray
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
             ),
             textStyle = TextStyle(
                 brush = gradColors,
@@ -214,10 +210,10 @@ fun LoginCredentials(auth: FirebaseAuth? = null) {
             onValueChange = { password = it },
             label = { Text("Password") },
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.Cyan,
-                unfocusedBorderColor = Color.LightGray,
-                focusedLabelColor = Color.Cyan,
-                unfocusedLabelColor = Color.LightGray
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
             ),
             visualTransformation = if (passwordVisible)
                 VisualTransformation.None
@@ -234,7 +230,7 @@ fun LoginCredentials(auth: FirebaseAuth? = null) {
                         imageVector = image,
                         contentDescription = if (passwordVisible) "Hide password"
                         else "Show password",
-                        tint = if (passwordVisible) Color.White else Color.LightGray
+                        tint = if (passwordVisible) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             },
@@ -246,7 +242,7 @@ fun LoginCredentials(auth: FirebaseAuth? = null) {
         )
         Text(
             text = "Forgot your Password?",
-            color = violet,
+            color = MaterialTheme.colorScheme.primary,
             textDecoration = TextDecoration.Underline,
             fontWeight = FontWeight.SemiBold,
             fontSize = 12.sp,
@@ -289,7 +285,7 @@ fun LoginCredentials(auth: FirebaseAuth? = null) {
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "OR",
-            color = violet,
+            color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Bold,
             fontSize = 20.sp,
             modifier = Modifier
@@ -310,7 +306,7 @@ fun LoginCredentials(auth: FirebaseAuth? = null) {
         )
         if (isLoading) {
             androidx.compose.material3.LinearProgressIndicator(
-                color = Color.Cyan,
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .padding(top = 8.dp)
                     .fillMaxWidth()
