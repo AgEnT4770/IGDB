@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -16,20 +15,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,7 +35,10 @@ import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +48,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
@@ -67,10 +68,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.times
 import androidx.compose.ui.util.lerp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -80,6 +83,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import coil.compose.rememberAsyncImagePainter
+import com.example.igdb.ui.theme.Gold
 import com.example.igdb.ui.theme.IGDBTheme
 import com.example.igdb.ui.theme.White
 import kotlinx.coroutines.delay
@@ -145,6 +149,36 @@ internal val genres = listOf(
     Genre("Educational", "educational")
 )
 
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun LineIndicator(
+    pagerState: PagerState,
+    modifier: Modifier = Modifier,
+    activeColor: Color = MaterialTheme.colorScheme.primary,
+    inactiveColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+) {
+    val totalWidth = 160.dp
+    if (pagerState.pageCount == 0) return
+    val thumbWidth = totalWidth / pagerState.pageCount
+    val indicatorOffset = (pagerState.currentPage + pagerState.currentPageOffsetFraction) * thumbWidth
+
+    Box(
+        modifier = modifier
+            .width(totalWidth)
+            .height(4.dp)
+            .background(inactiveColor, RoundedCornerShape(2.dp))
+            .clip(RoundedCornerShape(2.dp))
+    ) {
+        Box(
+            modifier = Modifier
+                .width(thumbWidth)
+                .height(4.dp)
+                .offset(x = indicatorOffset)
+                .background(activeColor)
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun MainScreen(navController: NavController, gameViewModel: GameViewModel = viewModel()) { // Hoisted ViewModel
@@ -159,8 +193,6 @@ fun MainScreen(navController: NavController, gameViewModel: GameViewModel = view
     val pagerState = rememberPagerState(pageCount = { navItems.size })
     val coroutineScope = rememberCoroutineScope()
     var userScrollEnabled by remember { mutableStateOf(true) }
-    val systemNavBarPadding = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
-    val bottomPadding = systemNavBarPadding + 16.dp
 
     LaunchedEffect(pagerState.currentPage) {
         userScrollEnabled = true
@@ -171,59 +203,60 @@ fun MainScreen(navController: NavController, gameViewModel: GameViewModel = view
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
 
         topBar = {
-            CenterAlignedTopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.primary,
-                ),
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Image(
-                            painter = painterResource(id = R.drawable.gamingbook),
-                            contentDescription = null,
-                            modifier = Modifier.size(40.dp)
-                        )
-                        Spacer(modifier = Modifier.width(20.dp))
-                        Text(
-                            "Home",
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                },
+            Column {
+                TopAppBar(
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background,
+                        titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    ),
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Image(
+                                painter = painterResource(id = R.drawable.app_icn),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                navItems[pagerState.currentPage],
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    },
 
-                scrollBehavior = scrollBehavior,
-            )
+                    scrollBehavior = scrollBehavior,
+                )
+                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f), thickness = 1.dp)
+            }
         },
         bottomBar = {
-            Box(modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = bottomPadding)) {
-                NavigationBar(
-                    modifier = Modifier
-                        .height(80.dp) // Increased height for a better look
-                        .clip(RoundedCornerShape(16.dp)),
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f)
-                ) {
-                    navItems.forEachIndexed { index, item ->
-                        val isSelected = pagerState.currentPage == index
-                        NavigationBarItem(
-                            icon = { Icon(navIcons[index], contentDescription = item, modifier = Modifier.size(28.dp)) },
-                            label = { Text(item) },
-                            selected = isSelected,
-                            alwaysShowLabel = isSelected,
-                            onClick = {
-                                coroutineScope.launch {
-                                    pagerState.animateScrollToPage(index)
-                                }
-                            },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.primary,
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                selectedTextColor = MaterialTheme.colorScheme.primary,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                            )
+            NavigationBar(
+                modifier = Modifier,
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            ) {
+                navItems.forEachIndexed { index, item ->
+                    val isSelected = pagerState.currentPage == index
+                    NavigationBarItem(
+                        icon = { Icon(navIcons[index], contentDescription = item, modifier = Modifier.size(28.dp)) },
+                        label = { Text(item) },
+                        selected = isSelected,
+                        alwaysShowLabel = true,
+                        onClick = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(index)
+                            }
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                         )
-                    }
+                    )
                 }
             }
         }
@@ -305,23 +338,22 @@ fun ScrollContent(
                         }
                     }
                 }
-
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     HorizontalPager(
                         state = pagerState,
-                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        contentPadding = PaddingValues(horizontal = 40.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(320.dp)
+                            .height(200.dp)
                     ) { page ->
                         val game = trendingGames[page]
                         val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
 
                         TrendingGameCard(
-                            game = game, 
+                            game = game,
                             onGameClicked = onGameClicked,
                             modifier = Modifier.graphicsLayer {
                                 val scale = lerp(1f, 0.85f, pageOffset.coerceIn(0f, 1f))
@@ -333,24 +365,27 @@ fun ScrollContent(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    Row(
-                        modifier = Modifier.padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        repeat(pagerState.pageCount) { iteration ->
-                            val color = if (pagerState.currentPage == iteration) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
-                            Box(
-                                modifier = Modifier
-                                    .padding(2.dp)
-                                    .clip(CircleShape)
-                                    .background(color)
-                                    .size(8.dp)
-                            )
-                        }
+                    val currentGame = trendingGames.getOrNull(pagerState.currentPage)
+                    if (currentGame != null) {
+                        Text(
+                            text = currentGame.name,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = currentGame.genres?.joinToString { it.name } ?: "",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        LineIndicator(pagerState = pagerState)
                     }
                 }
+
             }
         }
 
@@ -369,7 +404,7 @@ fun ScrollContent(
                             style = MaterialTheme.typography.titleLarge
                         )
                         Text(
-                            text = "Show more ->",
+                            text = "Show more",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.clickable { onShowMoreClicked(category) }
@@ -406,51 +441,50 @@ fun ScrollContent(
 
 @Composable
 fun TrendingGameCard(game: Game, onGameClicked: (Int) -> Unit, modifier: Modifier = Modifier) {
-    Box(
+    Card(
         modifier = modifier
             .fillMaxSize()
-            .clickable { onGameClicked(game.id) }
-            .clip(RoundedCornerShape(16.dp))
+            .clickable { onGameClicked(game.id) },
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Image(
-            painter = rememberAsyncImagePainter(
-                model = game.background_image,
-                placeholder = painterResource(id = R.drawable.gamingbook) // Placeholder image
-            ),
-            contentDescription = game.name,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .background(Color.Black.copy(alpha = 0.6f))
-                .padding(8.dp)
-                .fillMaxWidth()
-        ) {
-            Text(
-                text = game.name,
-                color = White,
-                style = MaterialTheme.typography.headlineSmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+        Box(modifier = Modifier.fillMaxSize()) {
+            Image(
+                painter = rememberAsyncImagePainter(
+                    model = game.background_image,
+                    placeholder = painterResource(id = R.drawable.gamingbook)
+                ),
+                contentDescription = game.name,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
             )
-        }
-        game.rating?.let {
+
             Surface(
-                color = Color.Black.copy(alpha = 0.8f),
-                shape = RoundedCornerShape(bottomStart = 8.dp, topEnd = 8.dp),
+                color = Color.Black.copy(alpha = 0.7f),
+                shape = RoundedCornerShape(bottomStart = 8.dp, topEnd = 16.dp),
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(4.dp)
+                    .padding(8.dp)
             ) {
-                Text(
-                    text = String.format("%.1f", it),
-                    color = White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
+                ) {
+                    game.rating?.let {
+                        Text(
+                            text = String.format("%.1f", it),
+                            color = White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                    Spacer(Modifier.width(4.dp))
+                    Icon(
+                        imageVector = Icons.Default.Star, // Star icon
+                        contentDescription = null,
+                        tint = Gold,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
             }
         }
     }
