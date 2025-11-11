@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.example.igdb" />
+                  <option name="mobileSdkAppId" value="1:1024611107367:android:25ac485d4eb5a8627f4402" />
+                  <option name="projectId" value="igdb-game" />
+                  <option name="projectNumber" value="1024611107367" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />
