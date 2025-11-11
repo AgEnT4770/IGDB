@@ -1,6 +1,5 @@
 package com.example.igdb
 
-import android.R.attr.onClick
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -28,8 +27,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -47,9 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -64,15 +59,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.igdb.ui.theme.IGDBTheme
 import com.example.igdb.ui.theme.Orange
-import com.example.igdb.ui.theme.White
-import com.example.igdb.ui.theme.violet
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 
 
 class SignupActivity : ComponentActivity() {
-    lateinit var auth: FirebaseAuth
+    private lateinit var auth: FirebaseAuth
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -134,20 +127,18 @@ fun SignupDesign(modifier: Modifier = Modifier ,auth: FirebaseAuth? = null) {
                 painter = painterResource(R.drawable.app_icn),
                 contentDescription = "IGDB Logo",
                 modifier = Modifier
-                    .padding(top = 28.dp , bottom = 16.dp)
+                    .padding(top = 28.dp, bottom = 16.dp)
                     .size(100.dp)
                     .clip(CircleShape)
-                    .border(2.dp, Color.White.copy(alpha = 0.6f), CircleShape)
+                    .border(2.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f), CircleShape)
 
             )
             Card(
-
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color.Black.copy(alpha = 0.6f)
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
                 ),
-
-                ) {
+            ) {
                 Column(
                     modifier = Modifier
                         .padding(24.dp)
@@ -158,7 +149,7 @@ fun SignupDesign(modifier: Modifier = Modifier ,auth: FirebaseAuth? = null) {
                     Text(
                         text = "Sign Up",
                         style = MaterialTheme.typography.headlineLarge,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -184,8 +175,10 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
-    val gradColors = remember {
-        Brush.linearGradient(listOf(Orange , Color.Magenta , White))
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val secondaryColor = MaterialTheme.colorScheme.secondary
+    val gradColors = remember(primaryColor, secondaryColor) {
+        Brush.linearGradient(listOf(Orange, primaryColor, secondaryColor))
     }
 
     Column {
@@ -204,10 +197,10 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
                     brush = gradColors,
                     fontSize = 16.sp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.Cyan,
-                    unfocusedBorderColor = Color.LightGray,
-                    focusedLabelColor = Color.Cyan,
-                    unfocusedLabelColor = Color.LightGray
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
                 singleLine = true,
                 modifier = Modifier.width(132.dp)
@@ -222,10 +215,10 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
                     brush = gradColors,
                     fontSize = 16.sp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color.Cyan,
-                    unfocusedBorderColor = Color.LightGray,
-                    focusedLabelColor = Color.Cyan,
-                    unfocusedLabelColor = Color.LightGray
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
                 singleLine = true,
                 modifier = Modifier.width(132.dp)
@@ -244,10 +237,10 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
                 brush = gradColors,
                 fontSize = 16.sp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.Cyan,
-                unfocusedBorderColor = Color.LightGray,
-                focusedLabelColor = Color.Cyan,
-                unfocusedLabelColor = Color.LightGray
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
             ),
 
             singleLine = true,
@@ -277,7 +270,7 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
                         imageVector = image,
                         contentDescription = if (passwordVisible) "Hide password"
                         else "Show password",
-                        tint = if (passwordVisible) Color.White else Color.LightGray
+                        tint = if (passwordVisible) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             },
@@ -285,10 +278,10 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
                 brush = gradColors,
                 fontSize = 16.sp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.Cyan,
-                unfocusedBorderColor = Color.LightGray,
-                focusedLabelColor = Color.Cyan,
-                unfocusedLabelColor = Color.LightGray
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
             ),
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
@@ -316,7 +309,7 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
                         imageVector = image,
                         contentDescription = if (confirmPasswordVisible) "Hide password"
                         else "Show password",
-                        tint = if (confirmPasswordVisible) Color.White else Color.LightGray
+                        tint = if (confirmPasswordVisible) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             },
@@ -325,10 +318,10 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
                 fontSize = 16.sp),
 
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.Cyan,
-                unfocusedBorderColor = Color.LightGray,
-                focusedLabelColor = Color.Cyan,
-                unfocusedLabelColor = Color.LightGray
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
             ),
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
@@ -337,7 +330,7 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
 
 
         Image(
-            painter = painterResource(id = R.drawable.signup1), // حط هنا صورة الزر عندك في drawable
+            painter = painterResource(id = R.drawable.signup1),
             contentDescription = "Sign Up Button",
             modifier = Modifier
                 .width(140.dp)
@@ -363,7 +356,7 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "OR",
-            color = violet,
+            color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Bold,
             fontSize = 20.sp,
             modifier = Modifier
@@ -385,7 +378,7 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
         )
         if (isLoading) {
             androidx.compose.material3.LinearProgressIndicator(
-                color = Color.Cyan,
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .padding(top = 8.dp)
                     .fillMaxWidth()
@@ -394,7 +387,6 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
             )
         }
     }
-
 }
 
 
