@@ -7,12 +7,14 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.collection.objectLongMapOf
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,6 +29,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -83,14 +86,22 @@ class SignupActivity : ComponentActivity() {
 
 }
 
-fun addUser(auth: FirebaseAuth, context: Context, email: String, pass: String) {
+fun addUser(
+    auth: FirebaseAuth,
+    context: Context,
+    email: String,
+    pass: String,
+    onComplete: (Boolean) -> Unit) {
     auth.createUserWithEmailAndPassword(email, pass)
         .addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 verifyEmail(auth ,context)
+                onComplete(true)
             } else {
                 Toast.makeText(context, task.exception?.message ?: "Signup failed", Toast.LENGTH_SHORT).show()
+                onComplete(false)
             }
+
         }
 }
 
@@ -185,7 +196,7 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
         Row (
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ){
             OutlinedTextField(
                 value = firstName,
@@ -203,7 +214,7 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
                     unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
                 singleLine = true,
-                modifier = Modifier.width(132.dp)
+                modifier = Modifier.weight(1F)
             )
             OutlinedTextField(
                 value = lastName,
@@ -221,7 +232,7 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
                     unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
                 singleLine = true,
-                modifier = Modifier.width(132.dp)
+                modifier = Modifier.weight(1F)
             )
         }
 
@@ -328,30 +339,35 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
         )
         Spacer(modifier = Modifier.height(28.dp))
 
-
-        Image(
-            painter = painterResource(id = R.drawable.signup1),
-            contentDescription = "Sign Up Button",
-            modifier = Modifier
-                .width(140.dp)
-                .height(50.dp)
-                .align(Alignment.CenterHorizontally)
-                .clickable {
-                    when {
-                        email.isBlank() -> Toast.makeText(context, "Missing Email", Toast.LENGTH_SHORT).show()
-                        firstName.isBlank() -> Toast.makeText(context, "Missing First Name", Toast.LENGTH_SHORT).show()
-                        lastName.isBlank() -> Toast.makeText(context, "Missing Last Name", Toast.LENGTH_SHORT).show()
-                        password.isBlank() -> Toast.makeText(context, "Missing Password", Toast.LENGTH_SHORT).show()
-                        confirmPassword.isBlank() -> Toast.makeText(context, "Missing Password Confirmation", Toast.LENGTH_SHORT).show()
-                        password != confirmPassword -> Toast.makeText(context, "Passwords don't match", Toast.LENGTH_SHORT).show()
-                        password.length < 8 -> Toast.makeText(context, "Minimum password length is 8", Toast.LENGTH_SHORT).show()
-                        else -> {
-                            isLoading = true
-                            addUser(auth!!, context, email, password)
-                        }
+        Button(
+            onClick = {
+                when {
+                    firstName.isBlank() -> Toast.makeText(context, "Missing First Name", Toast.LENGTH_SHORT).show()
+                    lastName.isBlank() -> Toast.makeText(context, "Missing Last Name", Toast.LENGTH_SHORT).show()
+                    email.isBlank() -> Toast.makeText(context, "Missing Email", Toast.LENGTH_SHORT).show()
+                    password.isBlank() -> Toast.makeText(context, "Missing Password", Toast.LENGTH_SHORT).show()
+                    confirmPassword.isBlank() -> Toast.makeText(context, "Missing Password Confirmation", Toast.LENGTH_SHORT).show()
+                    password != confirmPassword -> Toast.makeText(context, "Passwords don't match", Toast.LENGTH_SHORT).show()
+                    password.length < 8 -> Toast.makeText(context, "Minimum password length is 8", Toast.LENGTH_SHORT).show()
+                    else -> {
+                        isLoading = true
+                        addUser(auth!!, context, email, password){isLoading =false}
                     }
                 }
-        )
+            },
+            modifier = Modifier
+                .width(108.dp)
+                .height(50.dp)
+                .align(Alignment.CenterHorizontally),
+            shape = RoundedCornerShape(12.dp),
+            contentPadding = PaddingValues(0.dp)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.signup1),
+                contentDescription = "Signup Button",
+                contentScale = ContentScale.Crop
+            )
+        }
 
         Spacer(modifier = Modifier.height(8.dp))
         Text(
@@ -364,18 +380,26 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
             )
         Spacer(modifier = Modifier.height(8.dp))
 
-        Image(
-            painter = painterResource(id = R.drawable.login),
-            contentDescription = "Login Button",
+        Button(
+            onClick = {
+                isLoading = true
+                val intent = Intent(context, LoginActivity::class.java)
+                context.startActivity(intent)
+            },
             modifier = Modifier
-                .width(140.dp)
+                .width(108.dp)
                 .height(50.dp)
-                .align(Alignment.CenterHorizontally)
-                .clickable {
-                    val intent = Intent(context, LoginActivity::class.java)
-                    context.startActivity(intent)
-                }
-        )
+                .align(Alignment.CenterHorizontally),
+            shape = RoundedCornerShape(12.dp),
+            contentPadding = PaddingValues(0.dp)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.login),
+                contentDescription = "Login Button",
+                contentScale = ContentScale.Crop
+            )
+        }
+
         if (isLoading) {
             androidx.compose.material3.LinearProgressIndicator(
                 color = MaterialTheme.colorScheme.primary,

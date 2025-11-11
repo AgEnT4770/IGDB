@@ -12,6 +12,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,6 +26,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -88,7 +90,12 @@ class LoginActivity : ComponentActivity() {
     }
 }
 
-private fun singIn(auth: FirebaseAuth,context: Context, email: String, pass: String) {
+private fun singIn(
+    auth: FirebaseAuth,
+    context: Context,
+    email: String,
+    pass: String,
+    onComplete: (Boolean) -> Unit) {
     auth.signInWithEmailAndPassword(email, pass)
         .addOnCompleteListener { task ->
             if (task.isSuccessful) {
@@ -99,12 +106,17 @@ private fun singIn(auth: FirebaseAuth,context: Context, email: String, pass: Str
                     if (context is LoginActivity) {
                         context.finish()
                     }
+                    onComplete(true)
+
                 }
-                else
-                    Toast.makeText(context, "Check your Email!!", Toast.LENGTH_SHORT).show()
+                else{
+                    Toast.makeText(context, "Verify your Email!", Toast.LENGTH_SHORT).show()
+                    onComplete(false)
+                }
             }
             else {
                 Toast.makeText(context, task.exception?.message, Toast.LENGTH_SHORT).show()
+                onComplete(false)
             }
         }
 }
@@ -248,39 +260,54 @@ fun LoginCredentials(auth: FirebaseAuth? = null) {
             fontSize = 12.sp,
             modifier = Modifier
                 .clickable{
-                    if (email.isBlank())
+                    isLoading = true
+                    if (email.isBlank()) {
                         Toast.makeText(context, "Missing Email", Toast.LENGTH_SHORT).show()
-                    else
+                        isLoading = false
+                    }
+                    else {
                         Firebase.auth.sendPasswordResetEmail(email)
                             .addOnCompleteListener { task ->
                                 if (task.isSuccessful) {
-                                    Toast.makeText(context, "Email Sent!", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Email Sent!", Toast.LENGTH_SHORT)
+                                        .show()
                                 }
+                                isLoading = false
                             }
+                    }
                 }
         )
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        Image(
-            painter = painterResource(id = R.drawable.login),
-            contentDescription = "Login Button",
-            modifier = Modifier
-                .width(140.dp)
-                .height(50.dp)
-                .align(Alignment.CenterHorizontally)
-                .clickable {
-                    if (email.isBlank())
-                        Toast.makeText(context, "Missing Email", Toast.LENGTH_SHORT).show()
-                    else if (password.isBlank())
-                        Toast.makeText(context, "Missing Password", Toast.LENGTH_SHORT).show()
-                    else {
-                        isLoading = true
-                        singIn(auth!!, context, email, password)
-                    }
+        Button(
+            onClick = {
+                isLoading = true
+                if (email.isBlank()){
+                    Toast.makeText(context, "Missing Email", Toast.LENGTH_SHORT).show()
+                    isLoading = false
                 }
-        )
-
+                else if (password.isBlank()){
+                    Toast.makeText(context, "Missing Password", Toast.LENGTH_SHORT).show()
+                    isLoading = false
+                }
+                else {
+                    singIn(auth!!, context, email, password){isLoading = false}
+                }
+            },
+            modifier = Modifier
+                .width(108.dp)
+                .height(50.dp)
+                .align(Alignment.CenterHorizontally),
+            shape = RoundedCornerShape(12.dp),
+            contentPadding = PaddingValues(0.dp)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.login),
+                contentDescription = "Login Button",
+                contentScale = ContentScale.Crop
+            )
+        }
 
         Spacer(modifier = Modifier.height(8.dp))
         Text(
@@ -292,18 +319,25 @@ fun LoginCredentials(auth: FirebaseAuth? = null) {
                 .align(Alignment.CenterHorizontally)
         )
         Spacer(modifier = Modifier.height(8.dp))
-        Image(
-            painter = painterResource(id = R.drawable.signup1),
-            contentDescription = "Sign Up Button",
+        Button(
+            onClick = {
+                isLoading = true
+                val intent = Intent(context, SignupActivity::class.java)
+                context.startActivity(intent)
+            },
             modifier = Modifier
-                .width(140.dp)
+                .width(108.dp)
                 .height(50.dp)
-                .align(Alignment.CenterHorizontally)
-                .clickable {
-                    val intent = Intent(context, SignupActivity::class.java)
-                    context.startActivity(intent)
-                }
-        )
+                .align(Alignment.CenterHorizontally),
+            shape = RoundedCornerShape(12.dp),
+            contentPadding = PaddingValues(0.dp)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.signup1),
+                contentDescription = "Signup Button",
+                contentScale = ContentScale.Crop
+            )
+        }
         if (isLoading) {
             androidx.compose.material3.LinearProgressIndicator(
                 color = MaterialTheme.colorScheme.primary,
