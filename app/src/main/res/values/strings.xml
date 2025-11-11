@@ -2,4 +2,14 @@
     <string name="app_name">IGDB</string>
     <string name="title_activity_login">LoginActivity</string>
     <string name="title_activity_signup">SignupActivity</string>
+    <string name="about_this_game">About This Game</string>
+    <string name="reviews">Reviews</string>
+    <string name="minimum_specs">Minimum Specs</string>
+    <string name="recommended_specs">Recommended Specs</string>
+    <string name="no_minimum_requirements">No minimum requirements available for PC.</string>
+    <string name="no_recommended_requirements">No recommended requirements available for PC.</string>
+    <string name="did_you_played_this_game">Did You Played This Game?</string>
+    <string name="rate_it">Rate it!</string>
+    <string name="let_the_world_know_how_you_felt">Let the world know how you felt.</string>
+    <string name="related_games">Related Games</string>
 </resources>

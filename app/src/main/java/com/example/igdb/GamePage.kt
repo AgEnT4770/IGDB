@@ -3,7 +3,6 @@ package com.example.igdb
 import android.content.Context
 import android.text.Html
 import android.widget.Toast
-import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -91,7 +90,12 @@ fun IndeterminateCircularIndicator(loading: Boolean) {
 }
 
 @Composable
-fun GamePage(gameId: Int, viewModel: GameViewModel, onGameClicked: (Int) -> Unit, onBackClicked: () -> Unit) {
+fun GamePage(
+    gameId: Int,
+    viewModel: GameViewModel,
+    onGameClicked: (Int) -> Unit,
+    onBackClicked: () -> Unit
+) {
     val gameDetails by viewModel.gameDetails
     var loading by remember { mutableStateOf(false) }
 
