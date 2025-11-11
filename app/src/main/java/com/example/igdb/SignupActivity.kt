@@ -7,10 +7,8 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.collection.objectLongMapOf
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -65,6 +63,7 @@ import com.example.igdb.ui.theme.Orange
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
+import com.google.firebase.firestore.firestore
 
 
 class SignupActivity : ComponentActivity() {
@@ -76,7 +75,7 @@ class SignupActivity : ComponentActivity() {
         setContent {
             IGDBTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    SignupDesign(modifier = Modifier.padding(innerPadding) , auth)
+                    SignupDesign(modifier = Modifier.padding(innerPadding), auth)
                 }
             }
         }
@@ -86,19 +85,46 @@ class SignupActivity : ComponentActivity() {
 
 }
 
+
+fun addUserName(auth: FirebaseAuth, context: Context, firstName: String, lastName: String) {
+    val userId = auth.currentUser?.uid
+    val user = User(id = userId, name = "$firstName $lastName")
+
+    Firebase
+        .firestore
+        .collection("users")
+        .document(userId!!)
+        .set(user)
+        .addOnSuccessListener {
+            Toast.makeText(context, "User name Added", Toast.LENGTH_SHORT).show()
+            verifyEmail(auth, context)
+        }
+        .addOnFailureListener {
+            Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
+        }
+
+}
+
 fun addUser(
     auth: FirebaseAuth,
     context: Context,
     email: String,
     pass: String,
-    onComplete: (Boolean) -> Unit) {
+    firstName: String,
+    lastName: String,
+    onComplete: (Boolean) -> Unit
+) {
     auth.createUserWithEmailAndPassword(email, pass)
         .addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                verifyEmail(auth ,context)
+                addUserName(auth, context, firstName, lastName)
                 onComplete(true)
             } else {
-                Toast.makeText(context, task.exception?.message ?: "Signup failed", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    task.exception?.message ?: "Signup failed",
+                    Toast.LENGTH_SHORT
+                ).show()
                 onComplete(false)
             }
 
@@ -109,7 +135,8 @@ private fun verifyEmail(auth: FirebaseAuth, context: Context) {
     val user = Firebase.auth.currentUser
     user?.sendEmailVerification()?.addOnCompleteListener { task ->
         if (task.isSuccessful) {
-            Toast.makeText(context, "Check your inbox to verify your email", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Check your inbox to verify your email", Toast.LENGTH_SHORT)
+                .show()
             context.startActivity(Intent(context, LoginActivity::class.java))
             if (context is SignupActivity) {
                 context.finish()
@@ -119,24 +146,24 @@ private fun verifyEmail(auth: FirebaseAuth, context: Context) {
 }
 
 @Composable
-fun SignupDesign(modifier: Modifier = Modifier ,auth: FirebaseAuth? = null) {
+fun SignupDesign(modifier: Modifier = Modifier, auth: FirebaseAuth? = null) {
     Box(
         modifier = modifier
             .fillMaxSize(),
-    ){
+    ) {
         Image(
             painter = painterResource(id = R.drawable.bg),
             contentDescription = null,
             contentScale = ContentScale.FillBounds,
             modifier = Modifier.fillMaxSize()
         )
-        Column (
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 32.dp)
                 .padding(top = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
-        ){
+        ) {
             Image(
                 painter = painterResource(R.drawable.app_icn),
                 contentDescription = "IGDB Logo",
@@ -144,7 +171,11 @@ fun SignupDesign(modifier: Modifier = Modifier ,auth: FirebaseAuth? = null) {
                     .padding(top = 28.dp, bottom = 16.dp)
                     .size(100.dp)
                     .clip(CircleShape)
-                    .border(2.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f), CircleShape)
+                    .border(
+                        2.dp,
+                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                        CircleShape
+                    )
 
             )
             Card(
@@ -196,20 +227,22 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
     }
 
     Column {
-        Row (
+        Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ){
+        ) {
             OutlinedTextField(
                 value = firstName,
                 onValueChange = { firstName = it },
                 label = { Text("First Name") },
                 keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Text),
+                    keyboardType = KeyboardType.Text
+                ),
                 textStyle = TextStyle(
                     brush = gradColors,
-                    fontSize = 16.sp),
+                    fontSize = 16.sp
+                ),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
                     unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -224,10 +257,12 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
                 onValueChange = { lastName = it },
                 label = { Text("Last Name") },
                 keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Text),
+                    keyboardType = KeyboardType.Text
+                ),
                 textStyle = TextStyle(
                     brush = gradColors,
-                    fontSize = 16.sp),
+                    fontSize = 16.sp
+                ),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
                     unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -246,10 +281,12 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
             onValueChange = { email = it },
             label = { Text("Email") },
             keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email),
+                keyboardType = KeyboardType.Email
+            ),
             textStyle = TextStyle(
                 brush = gradColors,
-                fontSize = 16.sp),
+                fontSize = 16.sp
+            ),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -268,7 +305,8 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
             onValueChange = { password = it },
             label = { Text("Password") },
             keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Password),
+                keyboardType = KeyboardType.Password
+            ),
             visualTransformation = if (passwordVisible)
                 VisualTransformation.None
             else
@@ -290,7 +328,8 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
             },
             textStyle = TextStyle(
                 brush = gradColors,
-                fontSize = 16.sp),
+                fontSize = 16.sp
+            ),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -307,7 +346,8 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
             onValueChange = { confirmPassword = it },
             label = { Text("Confirm Password") },
             keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Password),
+                keyboardType = KeyboardType.Password
+            ),
             visualTransformation = if (confirmPasswordVisible)
                 VisualTransformation.None
             else
@@ -329,7 +369,8 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
             },
             textStyle = TextStyle(
                 brush = gradColors,
-                fontSize = 16.sp),
+                fontSize = 16.sp
+            ),
 
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -345,16 +386,55 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
         Button(
             onClick = {
                 when {
-                    firstName.isBlank() -> Toast.makeText(context, "Missing First Name", Toast.LENGTH_SHORT).show()
-                    lastName.isBlank() -> Toast.makeText(context, "Missing Last Name", Toast.LENGTH_SHORT).show()
-                    email.isBlank() -> Toast.makeText(context, "Missing Email", Toast.LENGTH_SHORT).show()
-                    password.isBlank() -> Toast.makeText(context, "Missing Password", Toast.LENGTH_SHORT).show()
-                    confirmPassword.isBlank() -> Toast.makeText(context, "Missing Password Confirmation", Toast.LENGTH_SHORT).show()
-                    password != confirmPassword -> Toast.makeText(context, "Passwords don't match", Toast.LENGTH_SHORT).show()
-                    password.length < 8 -> Toast.makeText(context, "Minimum password length is 8", Toast.LENGTH_SHORT).show()
+                    firstName.isBlank() -> Toast.makeText(
+                        context,
+                        "Missing First Name",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    lastName.isBlank() -> Toast.makeText(
+                        context,
+                        "Missing Last Name",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    email.isBlank() -> Toast.makeText(context, "Missing Email", Toast.LENGTH_SHORT)
+                        .show()
+
+                    password.isBlank() -> Toast.makeText(
+                        context,
+                        "Missing Password",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    confirmPassword.isBlank() -> Toast.makeText(
+                        context,
+                        "Missing Password Confirmation",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    password != confirmPassword -> Toast.makeText(
+                        context,
+                        "Passwords don't match",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    password.length < 8 -> Toast.makeText(
+                        context,
+                        "Minimum password length is 8",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
                     else -> {
                         isLoading = true
-                        addUser(auth!!, context, email, password){isLoading =false}
+                        addUser(
+                            auth = auth!!,
+                            context = context,
+                            email = email,
+                            pass = password,
+                            firstName = firstName,
+                            lastName = lastName
+                        ) { isLoading = false }
                     }
                 }
             },
@@ -380,7 +460,7 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
             fontSize = 20.sp,
             modifier = Modifier
                 .align(Alignment.CenterHorizontally),
-            )
+        )
         Spacer(modifier = Modifier.height(8.dp))
 
         Button(

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
@@ -14,33 +15,45 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.colorScheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-
+import androidx.compose.material3.*
+import androidx.compose.material3.ExposedDropdownMenuDefaults.outlinedTextFieldColors
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 @Composable
 fun DiscoverPage(
     modifier: Modifier = Modifier,
     gameViewModel: GameViewModel = viewModel(),
     onGameClicked: (Int) -> Unit
-) {
+)
+{
+    var searchQuery by remember { mutableStateOf("") }
     val initialGenre = gameViewModel.initialDiscoverGenre.value
     var selectedGenre by remember { mutableStateOf(initialGenre ?: genres.first { it.name == "Trending" }) }
-    
+
     val allGamesMap = gameViewModel.games.value
     val currentGames = allGamesMap[selectedGenre.name] ?: emptyList()
 
-    LaunchedEffect(selectedGenre) {
-        gameViewModel.fetchGamesByGenre(selectedGenre.name, selectedGenre.slug)
+    LaunchedEffect(selectedGenre , searchQuery) {
+        gameViewModel.fetchGamesByGenreAndSearch(selectedGenre.name, selectedGenre.slug ,searchQuery )
     }
 
     // Consume the initial genre after it has been used
@@ -56,6 +69,20 @@ fun DiscoverPage(
             .background(colorScheme.background)
             .padding(8.dp)
     ) {
+
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search"  , tint = colorScheme.onPrimary ) },
+            placeholder = { Text("Search games...") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            shape = RoundedCornerShape(16.dp),
+            singleLine = true ,
+
+            )
+
         GenreChips(
             genres = genres,
             selectedGenre = selectedGenre,
@@ -72,7 +99,7 @@ fun DiscoverPage(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = Color(0xFFFFC107))
+                    CircularProgressIndicator(color = colorScheme.primary)
                 }
             }
 
@@ -83,7 +110,7 @@ fun DiscoverPage(
                 ) {
                     Text(
                         "No games found in ${selectedGenre.name}",
-                        color = Color.Gray,
+                        color = colorScheme.primary ,
                         fontSize = 16.sp
                     )
                 }
@@ -110,13 +137,13 @@ fun GenreChips(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(50))
-                    .background(if (isSelected) Color(0xFFFFC107) else Color.DarkGray)
+                    .background(if (isSelected)  colorScheme.primary else colorScheme.secondary)
                     .clickable { onGenreSelected(genre) }
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text(
                     text = genre.name,
-                    color = if (isSelected) Color.Black else Color.White,
+                    color = if (isSelected) colorScheme.onPrimary else colorScheme.onPrimary ,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -137,3 +164,4 @@ fun GameGrid(games: List<Game>,onGameClicked: (Int) -> Unit) {
         }
     }
 }
+

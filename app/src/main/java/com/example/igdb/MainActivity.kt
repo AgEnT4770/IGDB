@@ -37,9 +37,8 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -68,7 +67,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -115,9 +113,13 @@ fun AppNavigation() {
         ) { backStackEntry ->
             val gameId = backStackEntry.arguments?.getInt("gameId")
             if (gameId != null) {
-                GamePage(gameId = gameId, viewModel = viewModel(), onGameClicked = { gameId ->
-                    navController.navigate("gameDetails/$gameId")
-                })
+                GamePage(
+                    gameId = gameId, viewModel = viewModel(), onGameClicked = { gameId ->
+                        navController.navigate("gameDetails/$gameId")
+                    },
+                    onBackClicked = {
+                        navController.popBackStack()
+                    })
             }
         }
     }
@@ -160,7 +162,8 @@ private fun LineIndicator(
     val totalWidth = 160.dp
     if (pagerState.pageCount == 0) return
     val thumbWidth = totalWidth / pagerState.pageCount
-    val indicatorOffset = (pagerState.currentPage + pagerState.currentPageOffsetFraction) * thumbWidth
+    val indicatorOffset =
+        (pagerState.currentPage + pagerState.currentPageOffsetFraction) * thumbWidth
 
     Box(
         modifier = modifier
@@ -181,7 +184,10 @@ private fun LineIndicator(
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun MainScreen(navController: NavController, gameViewModel: GameViewModel = viewModel()) { // Hoisted ViewModel
+fun MainScreen(
+    navController: NavController,
+    gameViewModel: GameViewModel = viewModel()
+) { // Hoisted ViewModel
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
     val navItems = listOf("Home", "Search", "Discover", "Profile")
     val navIcons = listOf(
@@ -229,7 +235,10 @@ fun MainScreen(navController: NavController, gameViewModel: GameViewModel = view
 
                     scrollBehavior = scrollBehavior,
                 )
-                Divider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f), thickness = 1.dp)
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                    thickness = 1.dp
+                )
             }
         },
         bottomBar = {
@@ -240,7 +249,13 @@ fun MainScreen(navController: NavController, gameViewModel: GameViewModel = view
                 navItems.forEachIndexed { index, item ->
                     val isSelected = pagerState.currentPage == index
                     NavigationBarItem(
-                        icon = { Icon(navIcons[index], contentDescription = item, modifier = Modifier.size(28.dp)) },
+                        icon = {
+                            Icon(
+                                navIcons[index],
+                                contentDescription = item,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        },
                         label = { Text(item) },
                         selected = isSelected,
                         alwaysShowLabel = true,
@@ -288,6 +303,7 @@ fun MainScreen(navController: NavController, gameViewModel: GameViewModel = view
                         navController.navigate("gameDetails/$gameId")
                     }
                 )
+
                 1 -> SearchPage(
                     modifier = Modifier,
                     gameViewModel = gameViewModel,
@@ -295,6 +311,7 @@ fun MainScreen(navController: NavController, gameViewModel: GameViewModel = view
                         navController.navigate("gameDetails/$it")
                     }
                 )
+
                 2 -> DiscoverPage(
                     modifier = Modifier,
                     gameViewModel = gameViewModel,
@@ -302,6 +319,7 @@ fun MainScreen(navController: NavController, gameViewModel: GameViewModel = view
                         navController.navigate("gameDetails/$it")
                     }
                 )
+
                 3 -> ProfilePage(modifier = Modifier)
             }
         }
@@ -350,7 +368,8 @@ fun ScrollContent(
                             .height(200.dp)
                     ) { page ->
                         val game = trendingGames[page]
-                        val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
+                        val pageOffset =
+                            ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
 
                         TrendingGameCard(
                             game = game,
@@ -492,7 +511,11 @@ fun TrendingGameCard(game: Game, onGameClicked: (Int) -> Unit, modifier: Modifie
 
 
 @Composable
-fun GameCard(game: Game, onGameClicked: (Int) -> Unit) {
+fun GameCard(
+    game: Game,
+    textColor: Color = MaterialTheme.colorScheme.onSurface,
+    onGameClicked: (Int) -> Unit
+) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -532,7 +555,7 @@ fun GameCard(game: Game, onGameClicked: (Int) -> Unit) {
         }
         Text(
             text = game.name,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = textColor,
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(top = 8.dp),
             maxLines = 1,
