@@ -111,7 +111,7 @@ private fun verifyEmail(auth: FirebaseAuth, context: Context) {
         if (task.isSuccessful) {
             Toast.makeText(context, "Check your inbox to verify your email", Toast.LENGTH_SHORT).show()
             context.startActivity(Intent(context, LoginActivity::class.java))
-            if (context is LoginActivity) {
+            if (context is SignupActivity) {
                 context.finish()
             }
         }
