@@ -43,7 +43,8 @@ fun DiscoverPage(
     modifier: Modifier = Modifier,
     gameViewModel: GameViewModel = viewModel(),
     onGameClicked: (Int) -> Unit
-) {
+)
+{
     var searchQuery by remember { mutableStateOf("") }
     val initialGenre = gameViewModel.initialDiscoverGenre.value
     var selectedGenre by remember { mutableStateOf(initialGenre ?: genres.first { it.name == "Trending" }) }
@@ -72,7 +73,7 @@ fun DiscoverPage(
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search"  , tint = MaterialTheme.colorScheme.primaryContainer ) },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search"  , tint = colorScheme.onPrimary ) },
             placeholder = { Text("Search games...") },
             modifier = Modifier
                 .fillMaxWidth()
@@ -98,7 +99,7 @@ fun DiscoverPage(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = Color(0xFFFFC107))
+                    CircularProgressIndicator(color = colorScheme.primary)
                 }
             }
 
@@ -109,7 +110,7 @@ fun DiscoverPage(
                 ) {
                     Text(
                         "No games found in ${selectedGenre.name}",
-                        color = Color.Gray,
+                        color = colorScheme.primary ,
                         fontSize = 16.sp
                     )
                 }
@@ -136,13 +137,13 @@ fun GenreChips(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(50))
-                    .background(if (isSelected)  MaterialTheme.colorScheme.primaryContainer else Color.DarkGray)
+                    .background(if (isSelected)  colorScheme.primary else colorScheme.secondary)
                     .clickable { onGenreSelected(genre) }
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text(
                     text = genre.name,
-                    color = if (isSelected) Color.Black else Color.White,
+                    color = if (isSelected) colorScheme.onPrimary else colorScheme.onPrimary ,
                     fontWeight = FontWeight.Bold
                 )
             }

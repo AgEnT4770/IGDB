@@ -1,3 +1,4 @@
+
 package com.example.igdb.ui.theme
 
 import androidx.compose.material3.Typography
