@@ -59,6 +59,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.example.igdb.ui.theme.Gold
 
@@ -111,8 +112,14 @@ fun GamePage(gameId: Int, viewModel: GameViewModel, onGameClicked: (Int) -> Unit
 fun GameDetails(
     modifier: Modifier = Modifier,
     game: Game,
+<<<<<<< Updated upstream
     viewModel: GameViewModel = GameViewModel(),
     onGameClicked: (Int) -> Unit
+=======
+    viewModel: GameViewModel,
+    onGameClicked: (Int) -> Unit,
+    onBackClicked: () -> Unit
+>>>>>>> Stashed changes
 ) {
     val backgroundColor = MaterialTheme.colorScheme.background
     LazyColumn(
@@ -149,6 +156,12 @@ fun GameDetails(
                 RatingText(text = game.rating.toString())
 
                 TopButtons(
+<<<<<<< Updated upstream
+=======
+                    onBackClicked = onBackClicked,
+                    game = game,
+                    viewModel = viewModel,
+>>>>>>> Stashed changes
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .fillMaxWidth()
@@ -248,7 +261,11 @@ fun ExpandableText(
 }
 
 @Composable
+<<<<<<< Updated upstream
 fun TopButtons(modifier: Modifier = Modifier) {
+=======
+fun TopButtons(modifier: Modifier = Modifier, onBackClicked: () -> Unit, game: Game, viewModel: GameViewModel) {
+>>>>>>> Stashed changes
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         modifier = modifier.padding(horizontal = 8.dp, vertical = 12.dp),
@@ -271,7 +288,7 @@ fun TopButtons(modifier: Modifier = Modifier) {
         }
 
         Button(
-            onClick = { /*TODO*/ },
+            onClick = {viewModel.toggleFavorite(game)},
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -342,7 +359,7 @@ fun TabMenu(game: Game) {
             }
         }
 
-        val pcRequirements = game.platforms?.find { it.platform.slug == "pc" }?.requirements
+        val pcRequirements = game.platforms?.find { it.platform?.slug == "pc" }?.requirements
 
         when (selectedTabIndex) {
             0 -> {
@@ -466,6 +483,7 @@ fun RelatedGames(
 @Preview(showBackground = false, showSystemUi = true)
 @Composable
 fun GameDetailsPreview() {
+<<<<<<< Updated upstream
     GameDetails(
         game = Game(
             1,
@@ -486,4 +504,34 @@ fun GameDetailsPreview() {
         ),
         onGameClicked = {}
     )
+=======
+    IGDBTheme {
+        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+            GameDetails(
+                game = Game(
+                    1,
+                    "The Witcher 3: Wild Hunt",
+                    "https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg",
+                    "<p>The Witcher 3: Wild Hunt is a 2015 action role-playing game developed and published by Polish developer CD Projekt Red and is based on The Witcher series of fantasy novels by Andrzej Sapkowski. The game is the sequel to the 2011 game The Witcher 2: Assassins of Kings, and the third main installment in The Witcher video game series, played in an open world with a third-person perspective.</p>",
+                    platforms = listOf(
+                        PlatformEntry(
+                            platform = Platform(1, "PC", "pc"),
+                            requirements = Requirements(
+                                minimum = "Intel CPU Core i5-2500K 3.3GHz / AMD CPU Phenom II X4 940",
+                                recommended = "Intel CPU Core i7 3770 3.4 GHz / AMD CPU AMD FX-8350 4 GHz"
+                            )
+                        )
+                    ),
+                    rating = 3.6,
+                    genres = listOf(GameGenre("Action", "Action"), GameGenre("RPG", "RPG"))
+                ),
+                onGameClicked = {},
+                onBackClicked = {},
+                viewModel = viewModel(),
+                modifier = Modifier.padding(innerPadding)
+            )
+        }
+    }
+
+>>>>>>> Stashed changes
 }

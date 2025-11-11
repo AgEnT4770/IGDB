@@ -3,11 +3,14 @@ package com.example.igdb
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -24,9 +27,41 @@ class GameViewModel : ViewModel() {
     private var searchJob: Job? = null
     val gameDetails = mutableStateOf<Game?>(null)
     val relatedGames = mutableStateOf<List<Game>>(emptyList())
-
-    // State to manage the genre selected from the home page
+    val favoriteGames = mutableStateOf<List<Game>>(emptyList())
     val initialDiscoverGenre = mutableStateOf<Genre?>(null)
+
+    private val firestore = FirebaseFirestore.getInstance()
+    private val auth = FirebaseAuth.getInstance()
+    private val userId = auth.currentUser?.uid
+
+    init {
+        fetchFavorites()
+    }
+
+    private fun fetchFavorites() {
+        if (userId == null) return
+        viewModelScope.launch {
+            val snapshot = firestore.collection("users").document(userId).collection("favorites").get().await()
+            favoriteGames.value = snapshot.toObjects(Game::class.java)
+        }
+    }
+
+    fun isFavorite(gameId: Int): Boolean {
+        return favoriteGames.value.any { it.id == gameId }
+    }
+
+    fun toggleFavorite(game: Game) {
+        if (userId == null) return
+        viewModelScope.launch {
+            val favoriteRef = firestore.collection("users").document(userId).collection("favorites").document(game.id.toString())
+            if (isFavorite(game.id)) {
+                favoriteRef.delete().await()
+            } else {
+                favoriteRef.set(game).await()
+            }
+            fetchFavorites() // Refresh the list
+        }
+    }
 
     fun fetchGames() {
         viewModelScope.launch {

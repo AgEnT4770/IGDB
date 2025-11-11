@@ -32,9 +32,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -105,9 +105,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
+    val gameViewModel: GameViewModel = viewModel()
     NavHost(navController = navController, startDestination = "main") {
         composable("main") {
-            MainScreen(navController = navController)
+            MainScreen(navController = navController, gameViewModel = gameViewModel)
         }
         composable(
             route = "gameDetails/{gameId}",
@@ -115,9 +116,20 @@ fun AppNavigation() {
         ) { backStackEntry ->
             val gameId = backStackEntry.arguments?.getInt("gameId")
             if (gameId != null) {
+<<<<<<< Updated upstream
                 GamePage(gameId = gameId, viewModel = viewModel(), onGameClicked = { gameId ->
                     navController.navigate("gameDetails/$gameId")
                 })
+=======
+                GamePage(
+                    gameId = gameId, 
+                    viewModel = gameViewModel, 
+                    onGameClicked = { gameId ->
+                        navController.navigate("gameDetails/$gameId")
+                    },
+                    onBackClicked = { navController.popBackStack() }
+                )
+>>>>>>> Stashed changes
             }
         }
     }
@@ -181,12 +193,16 @@ private fun LineIndicator(
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
+<<<<<<< Updated upstream
 fun MainScreen(navController: NavController, gameViewModel: GameViewModel = viewModel()) { // Hoisted ViewModel
+=======
+fun MainScreen(navController: NavController, gameViewModel: GameViewModel) { // Hoisted ViewModel
+>>>>>>> Stashed changes
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
-    val navItems = listOf("Home", "Search", "Discover", "Profile")
+    val navItems = listOf("Home", "Favourites", "Discover", "Profile")
     val navIcons = listOf(
         Icons.Filled.Home,
-        Icons.Filled.Search,
+        Icons.Filled.Favorite,
         Icons.Filled.Explore,
         Icons.Filled.Person
     )
@@ -288,7 +304,11 @@ fun MainScreen(navController: NavController, gameViewModel: GameViewModel = view
                         navController.navigate("gameDetails/$gameId")
                     }
                 )
+<<<<<<< Updated upstream
                 1 -> SearchPage(
+=======
+                1 -> FavouritesPage(
+>>>>>>> Stashed changes
                     modifier = Modifier,
                     gameViewModel = gameViewModel,
                     onGameClicked = {
