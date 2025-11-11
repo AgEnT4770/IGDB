@@ -1,6 +1,5 @@
 package com.example.igdb
 
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
@@ -60,71 +59,32 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.igdb.ui.theme.IGDBTheme
 import com.example.igdb.ui.theme.Orange
-import com.google.firebase.Firebase
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.auth
 
 
 class LoginActivity : ComponentActivity() {
-    private lateinit var auth: FirebaseAuth
+    private lateinit var authManager: Authentication
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        auth = Firebase.auth
+        authManager = Authentication(this)
         setContent {
             IGDBTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    LoginDesign(modifier = Modifier.padding(innerPadding) , auth )
+                    LoginDesign(modifier = Modifier.padding(innerPadding) , authManager )
                 }
             }
         }
     }
     override fun onStart() {
         super.onStart()
-        val currentUser = auth.currentUser
-        if (currentUser != null && currentUser.isEmailVerified) {
-            startActivity(Intent(this, MainActivity::class.java))
-            finish()
-        }
+        authManager.checkCurrentUser(this)
     }
 }
 
-private fun singIn(
-    auth: FirebaseAuth,
-    context: Context,
-    email: String,
-    pass: String,
-    onComplete: (Boolean) -> Unit) {
-    auth.signInWithEmailAndPassword(email, pass)
-        .addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                if (auth.currentUser!!.isEmailVerified){
-                    Toast.makeText(context, "Login Successfully", Toast.LENGTH_SHORT).show()
-                    val intent = Intent(context, MainActivity::class.java)
-                    context.startActivity(intent)
-                    if (context is LoginActivity) {
-                        context.finish()
-                    }
-                    onComplete(true)
-
-                }
-                else{
-                    Toast.makeText(context, "Verify your Email!", Toast.LENGTH_SHORT).show()
-                    onComplete(false)
-                }
-            }
-            else {
-                Toast.makeText(context, task.exception?.message, Toast.LENGTH_SHORT).show()
-                onComplete(false)
-            }
-        }
-}
-
-
 @Composable
-fun LoginDesign(modifier: Modifier = Modifier , auth: FirebaseAuth? = null) {
-    val context = LocalContext.current
+fun LoginDesign(modifier: Modifier = Modifier , authManager: Authentication? = null) {
     Box(
         modifier = modifier
             .fillMaxSize(),
@@ -175,7 +135,7 @@ fun LoginDesign(modifier: Modifier = Modifier , auth: FirebaseAuth? = null) {
                     )
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    LoginCredentials(auth)
+                    LoginCredentials(authManager)
                 }
             }
         }
@@ -184,7 +144,7 @@ fun LoginDesign(modifier: Modifier = Modifier , auth: FirebaseAuth? = null) {
 
 
 @Composable
-fun LoginCredentials(auth: FirebaseAuth? = null) {
+fun LoginCredentials(authManager: Authentication?) {
     val context = LocalContext.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -266,14 +226,7 @@ fun LoginCredentials(auth: FirebaseAuth? = null) {
                         isLoading = false
                     }
                     else {
-                        Firebase.auth.sendPasswordResetEmail(email)
-                            .addOnCompleteListener { task ->
-                                if (task.isSuccessful) {
-                                    Toast.makeText(context, "Email Sent!", Toast.LENGTH_SHORT)
-                                        .show()
-                                }
-                                isLoading = false
-                            }
+                        authManager?.resetPassword(email){isLoading = false}
                     }
                 }
         )
@@ -292,7 +245,10 @@ fun LoginCredentials(auth: FirebaseAuth? = null) {
                     isLoading = false
                 }
                 else {
-                    singIn(auth!!, context, email, password){isLoading = false}
+                    authManager?.signIn(email, password) { success ->
+                        isLoading = false
+                        if (!success) Toast.makeText(context, "Login Failed", Toast.LENGTH_SHORT).show()
+                    }
                 }
             },
             modifier = Modifier
