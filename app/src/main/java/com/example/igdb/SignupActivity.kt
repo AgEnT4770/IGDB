@@ -63,6 +63,7 @@ import com.example.igdb.ui.theme.Orange
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
+import com.google.firebase.firestore.firestore
 
 
 class SignupActivity : ComponentActivity() {
@@ -84,17 +85,39 @@ class SignupActivity : ComponentActivity() {
 
 }
 
+
+fun addUserName(auth: FirebaseAuth, context: Context, firstName: String, lastName: String) {
+    val userId = auth.currentUser?.uid
+    val user = User(id = userId, name = "$firstName $lastName")
+
+    Firebase
+        .firestore
+        .collection("users")
+        .document(userId!!)
+        .set(user)
+        .addOnSuccessListener {
+            Toast.makeText(context, "User name Added", Toast.LENGTH_SHORT).show()
+            verifyEmail(auth, context)
+        }
+        .addOnFailureListener {
+            Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
+        }
+
+}
+
 fun addUser(
     auth: FirebaseAuth,
     context: Context,
     email: String,
     pass: String,
+    firstName: String,
+    lastName: String,
     onComplete: (Boolean) -> Unit
 ) {
     auth.createUserWithEmailAndPassword(email, pass)
         .addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                verifyEmail(auth, context)
+                addUserName(auth, context, firstName, lastName)
                 onComplete(true)
             } else {
                 Toast.makeText(
@@ -404,7 +427,14 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
 
                     else -> {
                         isLoading = true
-                        addUser(auth!!, context, email, password) { isLoading = false }
+                        addUser(
+                            auth = auth!!,
+                            context = context,
+                            email = email,
+                            pass = password,
+                            firstName = firstName,
+                            lastName = lastName
+                        ) { isLoading = false }
                     }
                 }
             },

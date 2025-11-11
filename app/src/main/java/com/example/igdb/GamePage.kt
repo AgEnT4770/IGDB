@@ -1,6 +1,9 @@
 package com.example.igdb
 
+import android.content.Context
 import android.text.Html
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -22,6 +25,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Star
@@ -52,6 +56,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -61,6 +66,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import com.example.igdb.ui.theme.Gold
+import com.example.igdb.ui.theme.IGDBTheme
+import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.firestore
 
 
 @Composable
@@ -82,7 +91,7 @@ fun IndeterminateCircularIndicator(loading: Boolean) {
 }
 
 @Composable
-fun GamePage(gameId: Int, viewModel: GameViewModel, onGameClicked: (Int) -> Unit) {
+fun GamePage(gameId: Int, viewModel: GameViewModel, onGameClicked: (Int) -> Unit, onBackClicked: () -> Unit) {
     val gameDetails by viewModel.gameDetails
     var loading by remember { mutableStateOf(false) }
 
@@ -95,12 +104,13 @@ fun GamePage(gameId: Int, viewModel: GameViewModel, onGameClicked: (Int) -> Unit
 
     gameDetails?.let { game ->
         loading = false
-        Scaffold {
+        Scaffold { innerPadding ->
             GameDetails(
-                modifier = Modifier.padding(it),
+                modifier = Modifier.padding(innerPadding),
                 game = game,
                 onGameClicked = onGameClicked,
-                viewModel = viewModel
+                viewModel = viewModel,
+                onBackClicked = onBackClicked
             )
         }
         IndeterminateCircularIndicator(loading = loading)
@@ -112,7 +122,8 @@ fun GameDetails(
     modifier: Modifier = Modifier,
     game: Game,
     viewModel: GameViewModel = GameViewModel(),
-    onGameClicked: (Int) -> Unit
+    onGameClicked: (Int) -> Unit,
+    onBackClicked: () -> Unit
 ) {
     val backgroundColor = MaterialTheme.colorScheme.background
     LazyColumn(
@@ -126,7 +137,7 @@ fun GameDetails(
                 Image(
                     painter = rememberAsyncImagePainter(
                         model = game.background_image,
-                        placeholder = painterResource(R.drawable.gamingbook),
+                        placeholder = painterResource(R.drawable.img),
                     ),
                     contentDescription = null,
                     contentScale = ContentScale.FillBounds,
@@ -135,8 +146,11 @@ fun GameDetails(
                         .height(300.dp)
                         .drawWithCache {
                             val gradient = Brush.verticalGradient(
-                                colors = listOf(Color.Transparent, backgroundColor.copy(alpha = 0.8F)),
-                                startY = size.height / 3,
+                                colors = listOf(
+                                    Color.Transparent,
+                                    backgroundColor.copy(alpha = 0.9F)
+                                ),
+                                startY = size.height / 4,
                                 endY = size.height
                             )
                             onDrawWithContent {
@@ -149,6 +163,7 @@ fun GameDetails(
                 RatingText(text = game.rating.toString())
 
                 TopButtons(
+                    onBackClicked = onBackClicked,
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .fillMaxWidth()
@@ -183,7 +198,7 @@ fun GameDetails(
             InfoCard(
                 game = game,
                 onGameClicked = onGameClicked,
-                viewModel = viewModel
+                viewModel = viewModel,
             )
 
         }
@@ -248,13 +263,13 @@ fun ExpandableText(
 }
 
 @Composable
-fun TopButtons(modifier: Modifier = Modifier) {
+fun TopButtons(modifier: Modifier = Modifier, onBackClicked: () -> Unit) {
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         modifier = modifier.padding(horizontal = 8.dp, vertical = 12.dp),
     ) {
         Button(
-            onClick = { /*TODO*/ },
+            onClick = onBackClicked,
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -308,7 +323,7 @@ fun InfoCard(
 
     ) {
         Text(
-            text = "About This Game",
+            text = stringResource(R.string.about_this_game),
             color = MaterialTheme.colorScheme.onSurface,
             fontSize = 20.sp,
             fontWeight = FontWeight.SemiBold,
@@ -322,6 +337,7 @@ fun InfoCard(
             game = game,
             onGameClicked = onGameClicked
         )
+        AddingRateManager()
         TabMenu(game = game)
     }
 }
@@ -329,7 +345,10 @@ fun InfoCard(
 @Composable
 fun TabMenu(game: Game) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Reviews", "Minimum Specs", "Recommended Specs")
+    val tabs = listOf(
+        stringResource(R.string.reviews),
+        stringResource(R.string.minimum_specs), stringResource(R.string.recommended_specs)
+    )
 
     Column {
         TabRow(selectedTabIndex = selectedTabIndex, modifier = Modifier.padding(4.dp)) {
@@ -356,7 +375,7 @@ fun TabMenu(game: Game) {
             1 -> {
                 val minimumRequirements = pcRequirements?.minimum
                 ExpandableText(
-                    text = minimumRequirements ?: "No minimum requirements available for PC.",
+                    text = minimumRequirements ?: stringResource(R.string.no_minimum_requirements),
                     maxLines = 10,
                     modifier = Modifier.padding(16.dp)
                 )
@@ -366,7 +385,7 @@ fun TabMenu(game: Game) {
                 val recommendedRequirements = pcRequirements?.recommended
                 ExpandableText(
                     text = recommendedRequirements
-                        ?: "No recommended requirements available for PC.",
+                        ?: stringResource(R.string.no_recommended_requirements),
                     maxLines = 10,
                     modifier = Modifier.padding(16.dp)
                 )
@@ -378,8 +397,11 @@ fun TabMenu(game: Game) {
 @Composable
 fun ReviewCard(modifier: Modifier = Modifier) {
     Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        ),
         modifier = Modifier
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
             .fillMaxWidth()
     ) {
 
@@ -387,18 +409,28 @@ fun ReviewCard(modifier: Modifier = Modifier) {
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
+                    .padding(start = 12.dp, top = 12.dp, bottom = 4.dp)
                     .fillMaxWidth()
 
             ) {
+                Image(
+                    painter = painterResource(id = R.drawable.app_icn),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                )
+
                 Text(
                     text = "Mohamed Ibrahim",
                     color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier
-                        .padding(start = 12.dp, top = 12.dp, bottom = 4.dp)
+                        .padding(start = 8.dp)
+                        .weight(1f)
+
                 )
 
                 RatingText(text = "5.0")
@@ -435,7 +467,7 @@ fun RelatedGames(
     if (filterRelatedGames.isNotEmpty()) {
         Column {
             Text(
-                text = "Related Games",
+                text = stringResource(R.string.related_games),
                 color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -462,28 +494,138 @@ fun RelatedGames(
     }
 }
 
+@Composable
+fun AddingRateManager(modifier: Modifier = Modifier) {
+    Column() {
+        Text(
+            text = stringResource(R.string.did_you_played_this_game),
+            color = MaterialTheme.colorScheme.onSurface,
+            fontSize = 20.sp,
+            fontFamily = FontFamily.SansSerif,
+            modifier = Modifier
+                .padding(start = 12.dp, top = 12.dp)
+        )
+        RateItCard()
+    }
+}
 
-@Preview(showBackground = false, showSystemUi = true)
+@Composable
+fun RateItCard(modifier: Modifier = Modifier, isClicked: (Boolean) -> Unit = {}) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        ),
+        modifier = Modifier
+            .padding(horizontal = 12.dp, vertical = 12.dp)
+            .fillMaxWidth()
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxWidth()
+        ) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                shape = CircleShape,
+                modifier = Modifier
+                    .padding(end = 8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Star,
+                    contentDescription = null,
+                    tint = Gold,
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .size(32.dp)
+
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+            ) {
+                Text(
+                    text = stringResource(R.string.rate_it),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 20.sp,
+                    fontFamily = FontFamily.SansSerif,
+                    modifier = Modifier
+                        .padding(bottom = 4.dp)
+                )
+                Text(
+                    text = stringResource(R.string.let_the_world_know_how_you_felt),
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    fontSize = 12.sp,
+                    fontFamily = FontFamily.SansSerif,
+                )
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                contentDescription = null,
+                tint = Gold,
+                modifier = Modifier
+                    .size(32.dp)
+
+            )
+
+        }
+
+
+    }
+}
+
+
+@Preview(showSystemUi = true)
 @Composable
 fun GameDetailsPreview() {
-    GameDetails(
-        game = Game(
-            1,
-            "The Witcher 3: Wild Hunt",
-            "https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg",
-            "<p>The Witcher 3: Wild Hunt is a 2015 action role-playing game developed and published by Polish developer CD Projekt Red and is based on The Witcher series of fantasy novels by Andrzej Sapkowski. The game is the sequel to the 2011 game The Witcher 2: Assassins of Kings, and the third main installment in The Witcher video game series, played in an open world with a third-person perspective.</p>",
-            platforms = listOf(
-                PlatformEntry(
-                    platform = Platform(1, "PC", "pc"),
-                    requirements = Requirements(
-                        minimum = "Intel CPU Core i5-2500K 3.3GHz / AMD CPU Phenom II X4 940",
-                        recommended = "Intel CPU Core i7 3770 3.4 GHz / AMD CPU AMD FX-8350 4 GHz"
-                    )
-                )
-            ),
-            rating = 3.6,
-            genres = listOf(GameGenre("Action", "Action"), GameGenre("RPG", "RPG"))
-        ),
-        onGameClicked = {}
-    )
+    IGDBTheme {
+        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+            GameDetails(
+                game = Game(
+                    1,
+                    "The Witcher 3: Wild Hunt",
+                    "https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg",
+                    "<p>The Witcher 3: Wild Hunt is a 2015 action role-playing game developed and published by Polish developer CD Projekt Red and is based on The Witcher series of fantasy novels by Andrzej Sapkowski. The game is the sequel to the 2011 game The Witcher 2: Assassins of Kings, and the third main installment in The Witcher video game series, played in an open world with a third-person perspective.</p>",
+                    platforms = listOf(
+                        PlatformEntry(
+                            platform = Platform(1, "PC", "pc"),
+                            requirements = Requirements(
+                                minimum = "Intel CPU Core i5-2500K 3.3GHz / AMD CPU Phenom II X4 940",
+                                recommended = "Intel CPU Core i7 3770 3.4 GHz / AMD CPU AMD FX-8350 4 GHz"
+                            )
+                        )
+                    ),
+                    rating = 3.6,
+                    genres = listOf(GameGenre("Action", "Action"), GameGenre("RPG", "RPG"))
+                ),
+                onGameClicked = {},
+                onBackClicked = {},
+                modifier = Modifier.padding(innerPadding)
+            )
+        }
+    }
+
+}
+
+
+//logic
+fun addRate(auth: FirebaseAuth, context: Context, userRate: Double) {
+    val userId = auth.currentUser?.uid
+    val user = User(id = userId, rate = userRate)
+
+    Firebase
+        .firestore
+        .collection("users")
+        .document(userId!!)
+        .set(user)
+        .addOnSuccessListener {
+            Toast.makeText(context, "Rate Added", Toast.LENGTH_SHORT).show()
+        }
+        .addOnFailureListener {
+            Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
+        }
+
 }
