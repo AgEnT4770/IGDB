@@ -44,6 +44,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -62,6 +65,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -81,9 +85,10 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
-import kotlin.toString
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
-
+// loader
 @Composable
 fun IndeterminateCircularIndicator(loading: Boolean) {
     if (!loading) return
@@ -102,6 +107,8 @@ fun IndeterminateCircularIndicator(loading: Boolean) {
     }
 }
 
+//initializing the main page composable
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GamePage(
     gameId: Int,
@@ -111,8 +118,23 @@ fun GamePage(
 ) {
     val gameDetails by viewModel.gameDetails
     var loading by remember { mutableStateOf(false) }
+    var isRefreshing by remember { mutableStateOf(false) }
+    val state = rememberPullToRefreshState()
+    val coroutineScope = rememberCoroutineScope()
+    var refreshTrigger by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(gameId) {
+    val onRefresh: () -> Unit = {
+        isRefreshing = true
+        coroutineScope.launch {
+            // fetch something
+            delay(2000)
+            refreshTrigger++
+            isRefreshing = false
+        }
+    }
+
+
+    LaunchedEffect(gameId) { //fetch game details
         viewModel.fetchGameDetails(gameId)
         loading = true
     }
@@ -122,23 +144,42 @@ fun GamePage(
     gameDetails?.let { game ->
         loading = false
         Scaffold { innerPadding ->
-            GameDetails(
-                modifier = Modifier.padding(innerPadding),
-                game = game,
-                onGameClicked = onGameClicked,
-                viewModel = viewModel,
-                onBackClicked = onBackClicked
-            )
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = onRefresh,
+                state = state,
+                indicator = {
+                    Indicator(
+                        modifier = Modifier.align(Alignment.TopCenter),
+                        isRefreshing = isRefreshing,
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        state = state
+                    )
+                },
+            ) {
+                GameDetails(
+                    modifier = Modifier.padding(innerPadding),
+                    game = game,
+                    onGameClicked = onGameClicked,
+                    viewModel = viewModel,
+                    onBackClicked = onBackClicked,
+                    refreshTrigger = refreshTrigger
+                )
+            }
         }
         IndeterminateCircularIndicator(loading = loading)
     }
 }
 
+
+//loading the game details
 @Composable
 fun GameDetails(
     modifier: Modifier = Modifier,
     game: Game,
     viewModel: GameViewModel = GameViewModel(),
+    refreshTrigger: Int,
     onGameClicked: (Int) -> Unit,
     onBackClicked: () -> Unit
 ) {
@@ -217,12 +258,15 @@ fun GameDetails(
                 game = game,
                 onGameClicked = onGameClicked,
                 viewModel = viewModel,
+                refreshTrigger = refreshTrigger
             )
 
         }
     }
 }
 
+
+//rating text contains the rating of the game
 @Composable
 fun RatingText(modifier: Modifier = Modifier, text: String) {
     Row(
@@ -253,6 +297,7 @@ fun RatingText(modifier: Modifier = Modifier, text: String) {
 }
 
 
+//text to expand after pressing
 @Composable
 fun ExpandableText(
     modifier: Modifier = Modifier,
@@ -280,6 +325,8 @@ fun ExpandableText(
 
 }
 
+
+// the back an add to favourites buttons
 @Composable
 fun TopButtons(modifier: Modifier = Modifier, onBackClicked: () -> Unit) {
     Row(
@@ -323,11 +370,13 @@ fun TopButtons(modifier: Modifier = Modifier, onBackClicked: () -> Unit) {
 }
 
 
+//the card under the game image which contains all it's info
 @Composable
 fun InfoCard(
     modifier: Modifier = Modifier,
     game: Game,
     viewModel: GameViewModel,
+    refreshTrigger: Int,
     onGameClicked: (Int) -> Unit
 ) {
     val description = remember(game.description) {
@@ -355,13 +404,15 @@ fun InfoCard(
             game = game,
             onGameClicked = onGameClicked
         )
-        AddingRateManager(modifier = modifier, gameId = game.id)
-        TabMenu(game = game)
+        AddingRateManager(modifier = modifier, gameId = game.id, refreshTrigger = refreshTrigger)
+        TabMenu(game = game, refreshTrigger = refreshTrigger)
     }
 }
 
+
+//tab menu for navigation between tabs
 @Composable
-fun TabMenu(game: Game) {
+fun TabMenu(game: Game, refreshTrigger: Int) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabs = listOf(
         stringResource(R.string.reviews),
@@ -371,25 +422,26 @@ fun TabMenu(game: Game) {
     var reviews by remember { mutableStateOf<List<Review>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
     val context = LocalContext.current
-
-    LaunchedEffect(selectedTabIndex) {
-        if (selectedTabIndex == 0) {
-            isLoading = true
-            Firebase.firestore.collection("Reviews").document(game.id.toString())
-                .collection("game_reviews")
-                .get()
-                .addOnSuccessListener { documents ->
-                    reviews = documents.mapNotNull { it.toObject(Review::class.java) }
-                    isLoading = false
-                }
-                .addOnFailureListener { exception ->
-                    Toast.makeText(
-                        context,
-                        "Could not fetch reviews: ${exception.message}",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    isLoading = false
-                }
+    if (!LocalInspectionMode.current) {
+        LaunchedEffect(key1 = selectedTabIndex, key2 = refreshTrigger) {
+            if (selectedTabIndex == 0) {
+                isLoading = true
+                Firebase.firestore.collection("Reviews").document(game.id.toString())
+                    .collection("game_reviews")
+                    .get()
+                    .addOnSuccessListener { documents ->
+                        reviews = documents.mapNotNull { it.toObject(Review::class.java) }
+                        isLoading = false
+                    }
+                    .addOnFailureListener { exception ->
+                        Toast.makeText(
+                            context,
+                            "Could not fetch reviews: ${exception.message}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        isLoading = false
+                    }
+            }
         }
     }
 
@@ -457,6 +509,7 @@ fun TabMenu(game: Game) {
     }
 }
 
+//card to contain the reviews
 @Composable
 fun ReviewCard(modifier: Modifier = Modifier, review: Review) {
     Card(
@@ -510,6 +563,7 @@ fun ReviewCard(modifier: Modifier = Modifier, review: Review) {
 }
 
 
+//fetching the related games from the api
 @Composable
 fun RelatedGames(
     modifier: Modifier = Modifier,
@@ -526,6 +580,7 @@ fun RelatedGames(
             viewModel.fetchRelatedGames(it)
         }
     }
+
 
     if (filterRelatedGames.isNotEmpty()) {
         Column {
@@ -557,15 +612,16 @@ fun RelatedGames(
     }
 }
 
+//manager of the rating process to write and edit and submit a review
 @Composable
-fun AddingRateManager(modifier: Modifier = Modifier, gameId: Int) {
+fun AddingRateManager(modifier: Modifier = Modifier, gameId: Int, refreshTrigger: Int) {
     var showBottomSheet by remember { mutableStateOf(false) }
 
     var hasRated by remember { mutableStateOf(false) }
     var checkTrigger by remember { mutableIntStateOf(0) }
-    val auth = Firebase.auth
 
     LaunchedEffect(key1 = gameId, key2 = checkTrigger) {
+        val auth = Firebase.auth
         val userId = auth.currentUser?.uid
         if (userId != null) {
             Firebase.firestore.collection("Reviews").document(gameId.toString())
@@ -577,6 +633,7 @@ fun AddingRateManager(modifier: Modifier = Modifier, gameId: Int) {
         }
     }
 
+
     Column {
         Text(
             text = stringResource(R.string.did_you_play_this_game),
@@ -586,13 +643,23 @@ fun AddingRateManager(modifier: Modifier = Modifier, gameId: Int) {
             modifier = Modifier
                 .padding(start = 12.dp, top = 12.dp)
         )
-        RateItCard(hasRated = hasRated, onClick = { showBottomSheet = true })
+        RateItCard(hasRated = hasRated, onClick = {
+            showBottomSheet = true
+            checkTrigger++
+        })
     }
     if (showBottomSheet) {
-        BottomSheet(modifier = modifier, onDismiss = { showBottomSheet = false }, gameId = gameId)
+        BottomSheet(
+            modifier = modifier,
+            onDismiss = {
+                showBottomSheet = false
+                checkTrigger++
+            }, gameId = gameId
+        )
     }
 }
 
+//card to contain the rating to click for adding and editing the review
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RateItCard(modifier: Modifier = Modifier, hasRated: Boolean, onClick: () -> Unit = {}) {
@@ -679,7 +746,7 @@ fun RateItCard(modifier: Modifier = Modifier, hasRated: Boolean, onClick: () -> 
     }
 }
 
-
+//preview to show the game details page
 @Preview(showSystemUi = true)
 @Composable
 fun GameDetailsPreview() {
@@ -705,18 +772,19 @@ fun GameDetailsPreview() {
                 ),
                 onGameClicked = {},
                 onBackClicked = {},
-                modifier = Modifier.padding(innerPadding)
+                modifier = Modifier.padding(innerPadding),
+                refreshTrigger = 0,
             )
         }
     }
 
 }
 
+//a sheet which contains the review and rating fields
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BottomSheet(modifier: Modifier = Modifier, gameId: Int, onDismiss: () -> Unit) {
     val sheetState = rememberModalBottomSheetState()
-    val scope = rememberCoroutineScope()
     var review by remember { mutableStateOf("") }
     var rate by remember { mutableStateOf("") }
     val context = LocalContext.current
@@ -793,8 +861,13 @@ fun BottomSheet(modifier: Modifier = Modifier, gameId: Int, onDismiss: () -> Uni
 
             Button(
                 onClick = {
-                    if (rate.isNotBlank() && review.isNotBlank()){
-                        addRate(context = context, gameId = gameId, userRate = rate, userReview = review)
+                    if (rate.isNotBlank() && review.isNotBlank()) {
+                        addRate(
+                            context = context,
+                            gameId = gameId,
+                            userRate = rate,
+                            userReview = review
+                        )
                         onDismiss()
                     } else {
                         Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
@@ -823,6 +896,9 @@ fun BottomSheet(modifier: Modifier = Modifier, gameId: Int, onDismiss: () -> Uni
 
 
 //logic
+
+
+//adding the review to the firestore database
 fun addRate(
     auth: FirebaseAuth = Firebase.auth,
     gameId: Int,
