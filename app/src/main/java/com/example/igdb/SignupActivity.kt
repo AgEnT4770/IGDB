@@ -88,12 +88,12 @@ class SignupActivity : ComponentActivity() {
 
 fun addUserName(auth: FirebaseAuth, context: Context, firstName: String, lastName: String) {
     val userId = auth.currentUser?.uid
-    val user = User(id = userId, name = "$firstName $lastName")
+    val user = User(userId = userId!!, username = "$firstName $lastName")
 
     Firebase
         .firestore
-        .collection("users")
-        .document(userId!!)
+        .collection("Users")
+        .document(userId)
         .set(user)
         .addOnSuccessListener {
             Toast.makeText(context, "User name Added", Toast.LENGTH_SHORT).show()
@@ -430,10 +430,10 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
                         addUser(
                             auth = auth!!,
                             context = context,
-                            email = email,
+                            email = email.trim(),
                             pass = password,
-                            firstName = firstName,
-                            lastName = lastName
+                            firstName = firstName.trim(),
+                            lastName = lastName.trim()
                         ) { isLoading = false }
                     }
                 }
