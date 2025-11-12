@@ -1,8 +1,6 @@
 package com.example.igdb
 
-import android.R.attr.contentDescription
-import android.R.attr.tint
-import android.content.Context
+import android.annotation.SuppressLint
 import android.text.Html
 import android.widget.Toast
 import androidx.compose.animation.animateContentSize
@@ -14,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -32,6 +31,9 @@ import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -47,9 +49,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -57,7 +56,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,7 +66,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -80,40 +77,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.example.igdb.ui.theme.Gold
 import com.example.igdb.ui.theme.IGDBTheme
 import com.example.igdb.ui.theme.White
-import com.google.firebase.Firebase
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.auth
-import com.google.firebase.firestore.firestore
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import com.google.firebase.firestore.FirebaseFirestore
+import com.valentinilk.shimmer.shimmer
 
-// loader
-@Composable
-fun IndeterminateCircularIndicator(loading: Boolean) {
-    if (!loading) return
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        contentAlignment = Alignment.Center
-    ) {
-        CircularProgressIndicator(
-            modifier = Modifier.width(64.dp),
-            color = MaterialTheme.colorScheme.secondary,
-            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-        )
-    }
-}
-
-//initializing the main page composable
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.material.ExperimentalMaterialApi::class)
 @Composable
 fun GamePage(
     gameId: Int,
@@ -122,58 +92,42 @@ fun GamePage(
     onBackClicked: () -> Unit
 ) {
     val gameDetails by viewModel.gameDetails
-    var loading by remember { mutableStateOf(false) }
-    var isRefreshing by remember { mutableStateOf(false) }
-    val state = rememberPullToRefreshState()
-    val coroutineScope = rememberCoroutineScope()
-    var refreshTrigger by remember { mutableIntStateOf(0) }
+    val isLoading by viewModel.isGameDetailsLoading
+    val error by viewModel.gameDetailsError
+    val isRefreshing by viewModel.isLoading
 
-    val onRefresh: () -> Unit = {
-        isRefreshing = true
-        coroutineScope.launch {
-            // fetch something
-            delay(2000)
-            refreshTrigger++
-            isRefreshing = false
-        }
-    }
+    val pullRefreshState = rememberPullRefreshState(isRefreshing, { viewModel.fetchGameDetails(gameId) })
 
-
-    LaunchedEffect(gameId) { //fetch game details
+    LaunchedEffect(gameId) {
         viewModel.fetchGameDetails(gameId)
-        loading = true
+        viewModel.checkIfUserHasRated(gameId)
     }
 
-    IndeterminateCircularIndicator(loading = loading)
+    Scaffold {
+        Box(Modifier.pullRefresh(pullRefreshState)) {
+            when {
+                isLoading -> {
+                    GameDetailsShimmer()
+                }
 
-    gameDetails?.let { game ->
-        loading = false
-        Scaffold { innerPadding ->
-            PullToRefreshBox(
-                isRefreshing = isRefreshing,
-                onRefresh = onRefresh,
-                state = state,
-                indicator = {
-                    Indicator(
-                        modifier = Modifier.align(Alignment.TopCenter),
-                        isRefreshing = isRefreshing,
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        state = state
+                error != null -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(text = "Error: $error")
+                    }
+                }
+
+                gameDetails != null -> {
+                    GameDetails(
+                        modifier = Modifier.padding(it),
+                        game = gameDetails!!,
+                        onGameClicked = onGameClicked,
+                        viewModel = viewModel,
+                        onBackClicked = onBackClicked
                     )
-                },
-            ) {
-                GameDetails(
-                    modifier = Modifier.padding(innerPadding),
-                    game = game,
-                    onGameClicked = onGameClicked,
-                    viewModel = viewModel,
-                    onBackClicked = onBackClicked,
-                    refreshTrigger = refreshTrigger
-                )
+                }
             }
+            PullRefreshIndicator(isRefreshing, pullRefreshState, Modifier.align(Alignment.TopCenter))
         }
-        IndeterminateCircularIndicator(loading = loading)
     }
 }
 
@@ -183,8 +137,7 @@ fun GamePage(
 fun GameDetails(
     modifier: Modifier = Modifier,
     game: Game,
-    viewModel: GameViewModel = GameViewModel(),
-    refreshTrigger: Int,
+    viewModel: GameViewModel,
     onGameClicked: (Int) -> Unit,
     onBackClicked: () -> Unit
 ) {
@@ -193,6 +146,7 @@ fun GameDetails(
     LazyColumn(
         modifier = modifier
             .background(color = backgroundColor)
+            .fillMaxSize()
     ) {
         item {
             Box(
@@ -201,7 +155,7 @@ fun GameDetails(
                 Image(
                     painter = rememberAsyncImagePainter(
                         model = game.background_image,
-                        placeholder = painterResource(R.drawable.img),
+                        placeholder = painterResource(R.drawable.bg),
                     ),
                     contentDescription = null,
                     contentScale = ContentScale.FillBounds,
@@ -266,8 +220,7 @@ fun GameDetails(
                 modifier = modifier,
                 game = game,
                 onGameClicked = onGameClicked,
-                viewModel = viewModel,
-                refreshTrigger = refreshTrigger
+                viewModel = viewModel
             )
 
         }
@@ -337,7 +290,7 @@ fun ExpandableText(
 
 // the back an add to favourites buttons
 @Composable
-fun TopButtons(modifier: Modifier = Modifier, onBackClicked: () -> Unit, game: Game, viewModel: GameViewModel, context: Context) {
+fun TopButtons(modifier: Modifier = Modifier, onBackClicked: () -> Unit, game: Game, viewModel: GameViewModel, context: android.content.Context) {
     val isFavorite = viewModel.isFavorite(game.id)
 
     Row(
@@ -387,7 +340,6 @@ fun InfoCard(
     modifier: Modifier = Modifier,
     game: Game,
     viewModel: GameViewModel,
-    refreshTrigger: Int,
     onGameClicked: (Int) -> Unit
 ) {
     val description = remember(game.description) {
@@ -415,44 +367,27 @@ fun InfoCard(
             game = game,
             onGameClicked = onGameClicked
         )
-        AddingRateManager(modifier = modifier, gameId = game.id, refreshTrigger = refreshTrigger)
-        TabMenu(game = game, refreshTrigger = refreshTrigger)
+        AddingRateManager(modifier = modifier, gameId = game.id, viewModel = viewModel)
+        TabMenu(game = game, viewModel = viewModel)
     }
 }
 
 
 //tab menu for navigation between tabs
 @Composable
-fun TabMenu(game: Game, refreshTrigger: Int) {
+fun TabMenu(game: Game, viewModel: GameViewModel) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabs = listOf(
         stringResource(R.string.reviews),
         stringResource(R.string.minimum_specs), stringResource(R.string.recommended_specs)
     )
 
-    var reviews by remember { mutableStateOf<List<Review>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(false) }
+    val reviews by viewModel.reviews
+    val isLoading by viewModel.areReviewsLoading
     val context = LocalContext.current
-    if (!LocalInspectionMode.current) {
-        LaunchedEffect(key1 = selectedTabIndex, key2 = refreshTrigger) {
-            if (selectedTabIndex == 0) {
-                isLoading = true
-                Firebase.firestore.collection("Reviews").document(game.id.toString())
-                    .collection("game_reviews")
-                    .get()
-                    .addOnSuccessListener { documents ->
-                        reviews = documents.mapNotNull { it.toObject(Review::class.java) }
-                        isLoading = false
-                    }
-                    .addOnFailureListener { exception ->
-                        Toast.makeText(
-                            context,
-                            "Could not fetch reviews: ${exception.message}",
-                            Toast.LENGTH_LONG
-                        ).show()
-                        isLoading = false
-                    }
-            }
+    LaunchedEffect(key1 = selectedTabIndex) {
+        if (selectedTabIndex == 0) {
+            viewModel.fetchReviews(game.id, context)
         }
     }
 
@@ -625,25 +560,9 @@ fun RelatedGames(
 
 //manager of the rating process to write and edit and submit a review
 @Composable
-fun AddingRateManager(modifier: Modifier = Modifier, gameId: Int, refreshTrigger: Int) {
+fun AddingRateManager(modifier: Modifier = Modifier, gameId: Int, viewModel: GameViewModel) {
     var showBottomSheet by remember { mutableStateOf(false) }
-
-    var hasRated by remember { mutableStateOf(false) }
-    var checkTrigger by remember { mutableIntStateOf(0) }
-
-    LaunchedEffect(key1 = gameId, key2 = checkTrigger) {
-        val auth = Firebase.auth
-        val userId = auth.currentUser?.uid
-        if (userId != null) {
-            Firebase.firestore.collection("Reviews").document(gameId.toString())
-                .collection("game_reviews").document(userId)
-                .get()
-                .addOnSuccessListener { document ->
-                    hasRated = document.exists()
-                }
-        }
-    }
-
+    val hasRated by viewModel.hasRated
 
     Column {
         Text(
@@ -654,18 +573,15 @@ fun AddingRateManager(modifier: Modifier = Modifier, gameId: Int, refreshTrigger
             modifier = Modifier
                 .padding(start = 12.dp, top = 12.dp)
         )
-        RateItCard(hasRated = hasRated, onClick = {
-            showBottomSheet = true
-            checkTrigger++
-        })
+        RateItCard(hasRated = hasRated, onClick = { showBottomSheet = true })
     }
     if (showBottomSheet) {
         BottomSheet(
             modifier = modifier,
             onDismiss = {
                 showBottomSheet = false
-                checkTrigger++
-            }, gameId = gameId
+                viewModel.checkIfUserHasRated(gameId)
+            }, gameId = gameId, viewModel = viewModel
         )
     }
 }
@@ -757,44 +673,91 @@ fun RateItCard(modifier: Modifier = Modifier, hasRated: Boolean, onClick: () -> 
     }
 }
 
+@Composable
+fun GameDetailsShimmer() {
+    LazyColumn {
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(300.dp)
+                    .shimmer()
+                    .background(Color.Gray)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Column(modifier = Modifier.padding(horizontal = 12.dp)){
+                Box(
+                    modifier = Modifier
+                        .width(260.dp)
+                        .height(32.dp)
+                        .shimmer()
+                        .background(Color.Gray)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .width(180.dp)
+                        .height(20.dp)
+                        .shimmer()
+                        .background(Color.Gray)
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Card(modifier = Modifier.padding(horizontal = 12.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(600.dp)
+                        .shimmer()
+                        .background(Color.Gray)
+                )
+            }
+
+        }
+    }
+}
+
+
+
 //preview to show the game details page
+@SuppressLint("ViewModelConstructorInComposable")
 @Preview(showSystemUi = true)
 @Composable
 fun GameDetailsPreview() {
     IGDBTheme {
+        val game = Game(
+            id = 1,
+            name = "The Witcher 3: Wild Hunt",
+            background_image = "https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg",
+            description = "<p>The Witcher 3: Wild Hunt is a 2015 action role-playing game developed and published by Polish developer CD Projekt Red and is based on The Witcher series of fantasy novels by Andrzej Sapkowski. The game is the sequel to the 2011 game The Witcher 2: Assassins of Kings, and the third main installment in The Witcher video game series, played in an open world with a third-person perspective.</p>",
+            platforms = listOf(
+                PlatformEntry(
+                    platform = Platform(1, "PC", "pc"),
+                    requirements = Requirements(
+                        minimum = "Intel CPU Core i5-2500K 3.3GHz / AMD CPU Phenom II X4 940",
+                        recommended = "Intel CPU Core i7 3770 3.4 GHz / AMD CPU AMD FX-8350 4 GHz"
+                    )
+                )
+            ),
+            rating = 3.6,
+            genres = listOf(GameGenre("Action", "Action"), GameGenre("RPG", "RPG"))
+        )
         Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
             GameDetails(
-                game = Game(
-                    1,
-                    "The Witcher 3: Wild Hunt",
-                    "https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg",
-                    "<p>The Witcher 3: Wild Hunt is a 2015 action role-playing game developed and published by Polish developer CD Projekt Red and is based on The Witcher series of fantasy novels by Andrzej Sapkowski. The game is the sequel to the 2011 game The Witcher 2: Assassins of Kings, and the third main installment in The Witcher video game series, played in an open world with a third-person perspective.</p>",
-                    platforms = listOf(
-                        PlatformEntry(
-                            platform = Platform(1, "PC", "pc"),
-                            requirements = Requirements(
-                                minimum = "Intel CPU Core i5-2500K 3.3GHz / AMD CPU Phenom II X4 940",
-                                recommended = "Intel CPU Core i7 3770 3.4 GHz / AMD CPU AMD FX-8350 4 GHz"
-                            )
-                        )
-                    ),
-                    rating = 3.6,
-                    genres = listOf(GameGenre("Action", "Action"), GameGenre("RPG", "RPG"))
-                ),
-                onGameClicked = {},
-                onBackClicked = {},
                 modifier = Modifier.padding(innerPadding),
-                refreshTrigger = 0,
+                game = game,
+                viewModel = PreviewGameViewModel(),
+                onGameClicked = {},
+                onBackClicked = {}
             )
         }
     }
-
 }
 
 //a sheet which contains the review and rating fields
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BottomSheet(modifier: Modifier = Modifier, gameId: Int, onDismiss: () -> Unit) {
+fun BottomSheet(modifier: Modifier = Modifier, gameId: Int, viewModel: GameViewModel, onDismiss: () -> Unit) {
     val sheetState = rememberModalBottomSheetState()
     var review by remember { mutableStateOf("") }
     var rate by remember { mutableStateOf("") }
@@ -873,12 +836,7 @@ fun BottomSheet(modifier: Modifier = Modifier, gameId: Int, onDismiss: () -> Uni
             Button(
                 onClick = {
                     if (rate.isNotBlank() && review.isNotBlank()) {
-                        addRate(
-                            context = context,
-                            gameId = gameId,
-                            userRate = rate,
-                            userReview = review
-                        )
+                        viewModel.addReview(gameId, rate, review, context)
                         onDismiss()
                     } else {
                         Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
@@ -903,58 +861,4 @@ fun BottomSheet(modifier: Modifier = Modifier, gameId: Int, onDismiss: () -> Uni
 
     }
 
-}
-
-
-//logic
-
-
-//adding the review to the firestore database
-fun addRate(
-    auth: FirebaseAuth = Firebase.auth,
-    gameId: Int,
-    context: Context,
-    userRate: String,
-    userReview: String
-) {
-    val userId = auth.currentUser?.uid ?: run {
-        Toast.makeText(context, "Not logged in", Toast.LENGTH_SHORT).show()
-        return
-    }
-
-    val db = Firebase.firestore
-    val usersCollection = db
-        .collection("Users")
-        .document(userId)
-
-    usersCollection.get()
-        .addOnSuccessListener { documents ->
-            val username = documents.getString("username") ?: ""
-            val review = Review(
-                reviewerId = userId,
-                reviewerName = username,
-                rating = userRate,
-                review = userReview
-            )
-            val reviewsCollection = db.collection("Reviews").document(gameId.toString())
-                .collection("game_reviews")
-                .document(userId)
-
-            reviewsCollection.set(review)
-                .addOnSuccessListener {
-                    Toast.makeText(context, "Rate Added", Toast.LENGTH_SHORT).show()
-                }.addOnFailureListener { e ->
-                    Toast.makeText(
-                        context,
-                        "Failed to submit review: ${e.message}",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-        }.addOnFailureListener {
-            Toast.makeText(
-                context,
-                "Failed to fetch user profile: ${it.message}",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
 }

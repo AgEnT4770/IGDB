@@ -12,14 +12,12 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 
-class GameViewModel : ViewModel() {
+open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
     private val apiService = Retrofit.Builder()
         .baseUrl(RawgApiService.BASE_URL)
-        .addConverterFactory(GsonConverterFactory.create())
+        .addConverterFactory(retrofit2.converter.gson.GsonConverterFactory.create())
         .build()
         .create(RawgApiService::class.java)
 
@@ -28,55 +26,44 @@ class GameViewModel : ViewModel() {
     val isLoading = mutableStateOf(false)
     private var searchJob: Job? = null
     val gameDetails = mutableStateOf<Game?>(null)
+    val isGameDetailsLoading = mutableStateOf(false)
+    val gameDetailsError = mutableStateOf<String?>(null)
     val relatedGames = mutableStateOf<List<Game>>(emptyList())
     val favoriteGames = mutableStateOf<List<Game>>(emptyList())
     val initialDiscoverGenre = mutableStateOf<Genre?>(null)
+    val reviews = mutableStateOf<List<Review>>(emptyList())
+    val areReviewsLoading = mutableStateOf(false)
+    val hasRated = mutableStateOf(false)
 
-    private val firestore = FirebaseFirestore.getInstance()
-    private val auth = FirebaseAuth.getInstance()
-    private val userId = auth.currentUser?.uid
+
+    private val firestore = if (inPreview) null else FirebaseFirestore.getInstance()
+    private val auth = if (inPreview) null else FirebaseAuth.getInstance()
+    private val userId = auth?.currentUser?.uid
 
     init {
-        fetchFavorites()
+        if (!inPreview) {
+            fetchFavorites()
+        }
     }
 
     private fun fetchFavorites() {
         if (userId == null) return
-        firestore.collection("Users").document(userId).collection("favorites").get()
-            .addOnSuccessListener { snapshot ->
-                val games = mutableListOf<Game>()
-                for (document in snapshot.documents) {
-                    val id = (document.get("id") as? Number)?.toInt() ?: 0
-                    val name = document.getString("name") ?: ""
-                    val backgroundImage = document.getString("background_image")
-                    val rating = (document.get("rating") as? Number)?.toDouble()
-                    if (id != 0) {
-                        games.add(
-                            Game(
-                                id = id,
-                                name = name,
-                                background_image = backgroundImage,
-                                rating = rating,
-                                description = null,
-                                platforms = null,
-                                genres = null
-                            )
-                        )
-                    }
-                }
-                favoriteGames.value = games
+        firestore?.collection("Users")?.document(userId)?.collection("favorites")?.get()
+            ?.addOnSuccessListener { snapshot ->
+                val gamesList = snapshot.documents.mapNotNull { it.toObject(Game::class.java) }
+                favoriteGames.value = gamesList
             }
     }
 
-    fun isFavorite(gameId: Int): Boolean {
+    open fun isFavorite(gameId: Int): Boolean {
         return favoriteGames.value.any { it.id == gameId }
     }
 
     fun toggleFavorite(game: Game, context: Context) {
         if (userId == null) return
-        val favoriteRef = firestore.collection("Users").document(userId).collection("favorites").document(game.id.toString())
+        val favoriteRef = firestore?.collection("Users")?.document(userId)?.collection("favorites")?.document(game.id.toString())
         if (isFavorite(game.id)) {
-            favoriteRef.delete().addOnSuccessListener { 
+            favoriteRef?.delete()?.addOnSuccessListener { 
                 Toast.makeText(context, "Removed from Favourites", Toast.LENGTH_SHORT).show()
                 fetchFavorites() 
             }
@@ -87,55 +74,37 @@ class GameViewModel : ViewModel() {
                 "background_image" to game.background_image,
                 "rating" to game.rating
             )
-            favoriteRef.set(gameData).addOnSuccessListener { 
+            favoriteRef?.set(gameData)?.addOnSuccessListener { 
                 Toast.makeText(context, "Added to Favourites", Toast.LENGTH_SHORT).show()
                 fetchFavorites() 
             }
         }
     }
 
-    fun fetchGames() {
+    open fun fetchGames() {
         viewModelScope.launch {
             isLoading.value = true
-
-            val categories = mapOf(
-                "Trending" to "-popularity",
-                "Action" to "action",
-                "Adventure" to "adventure",
-                "RPG" to "role-playing-games-rpg",
-                "Strategy" to "strategy",
-                "Indie" to "indie"
-            )
-
             try {
+                val categories = mapOf(
+                    "Trending" to "-popularity",
+                    "Action" to "action",
+                    "Adventure" to "adventure",
+                    "RPG" to "role-playing-games-rpg",
+                    "Strategy" to "strategy",
+                    "Indie" to "indie"
+                )
                 val deferredGames = categories.map { (category, value) ->
                     async {
                         val response = apiService.getGames(
                             apiKey = "6e5ea525d41242d3b765b9e83eba84e7",
                             genres = if (category != "Trending") value else null,
                             ordering = if (category == "Trending") value else null,
-                            pageSize = when (category) {
-                                "Trending" -> 5
-                                "Action" -> 15
-                                else -> 10
-                            }
+                            pageSize = 10
                         )
                         category to response.results
                     }
                 }
-
-                val gamesMap = deferredGames.awaitAll().toMap().toMutableMap()
-
-                val trendingGames = gamesMap["Trending"] ?: emptyList()
-                val actionGames = gamesMap["Action"] ?: emptyList()
-
-                if (trendingGames.isNotEmpty() && actionGames.isNotEmpty()) {
-                    val trendingGameIds = trendingGames.map { it.id }.toSet()
-                    gamesMap["Action"] =
-                        actionGames.filterNot { trendingGameIds.contains(it.id) }.take(10)
-                }
-
-                games.value = gamesMap
+                games.value = deferredGames.awaitAll().toMap()
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
@@ -201,8 +170,10 @@ class GameViewModel : ViewModel() {
     }
 
 
-    fun fetchGameDetails(gameId: Int) {
+    open fun fetchGameDetails(gameId: Int) {
         viewModelScope.launch {
+            isGameDetailsLoading.value = true
+            gameDetailsError.value = null
             try {
                 val response = apiService.getGameDetails(
                     id = gameId,
@@ -210,13 +181,16 @@ class GameViewModel : ViewModel() {
                 )
                 gameDetails.value = response
             } catch (e: Exception) {
+                gameDetailsError.value = e.message
                 e.printStackTrace()
+            } finally {
+                isGameDetailsLoading.value = false
             }
         }
 
     }
 
-    fun fetchRelatedGames(genreSlug: String) {
+    open fun fetchRelatedGames(genreSlug: String) {
         viewModelScope.launch {
             try {
                 val response = apiService.getGames(
@@ -231,4 +205,85 @@ class GameViewModel : ViewModel() {
         }
     }
 
+    open fun fetchReviews(gameId: Int, context: Context) {
+        areReviewsLoading.value = true
+        firestore?.collection("Reviews")?.document(gameId.toString())?.collection("game_reviews")?.get()
+            ?.addOnSuccessListener { documents ->
+                reviews.value = documents.mapNotNull { it.toObject(Review::class.java) }
+                areReviewsLoading.value = false
+            }
+            ?.addOnFailureListener { exception ->
+                Toast.makeText(context, "Could not fetch reviews: ${exception.message}", Toast.LENGTH_LONG).show()
+                areReviewsLoading.value = false
+            }
+    }
+
+    open fun checkIfUserHasRated(gameId: Int) {
+        if (userId == null) return
+        firestore?.collection("Reviews")?.document(gameId.toString())?.collection("game_reviews")?.document(userId)?.get()
+            ?.addOnSuccessListener { document ->
+                hasRated.value = document.exists()
+            }
+    }
+
+    open fun addReview(gameId: Int, rating: String, reviewText: String, context: Context) {
+        if (userId == null) {
+            Toast.makeText(context, "Not logged in", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        firestore?.collection("Users")?.document(userId)?.get()?.addOnSuccessListener { userDoc ->
+            val username = userDoc.getString("username") ?: ""
+            val review = Review(
+                reviewerId = userId,
+                reviewerName = username,
+                rating = rating,
+                review = reviewText
+            )
+            firestore.collection("Reviews").document(gameId.toString())
+                .collection("game_reviews").document(userId).set(review)
+                .addOnSuccessListener {
+                    Toast.makeText(context, "Rate Added", Toast.LENGTH_SHORT).show()
+                    fetchReviews(gameId, context)
+                    checkIfUserHasRated(gameId)
+                }.addOnFailureListener { e ->
+                    Toast.makeText(context, "Failed to submit review: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+        }?.addOnFailureListener { 
+            Toast.makeText(context, "Failed to fetch user profile", Toast.LENGTH_SHORT).show()
+        }
+    }
+}
+
+class PreviewGameViewModel : GameViewModel(inPreview = true) {
+    override fun isFavorite(gameId: Int): Boolean = false
+    override fun fetchGames() {}
+    override fun fetchGameDetails(gameId: Int) {
+        viewModelScope.launch {
+            isGameDetailsLoading.value = true
+            delay(1500)
+            gameDetails.value = Game(
+                id = 1,
+                name = "The Witcher 3: Wild Hunt",
+                background_image = "https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg",
+                description = "<p>The Witcher 3: Wild Hunt is a 2015 action role-playing game developed and published by Polish developer CD Projekt Red and is based on The Witcher series of fantasy novels by Andrzej Sapkowski. The game is the sequel to the 2011 game The Witcher 2: Assassins of Kings, and the third main installment in The Witcher video game series, played in an open world with a third-person perspective.</p>",
+                platforms = listOf(
+                    PlatformEntry(
+                        platform = Platform(1, "PC", "pc"),
+                        requirements = Requirements(
+                            minimum = "Intel CPU Core i5-2500K 3.3GHz / AMD CPU Phenom II X4 940",
+                            recommended = "Intel CPU Core i7 3770 3.4 GHz / AMD CPU AMD FX-8350 4 GHz"
+                        )
+                    )
+                ),
+                rating = 3.6,
+                genres = listOf(GameGenre("Action", "Action"), GameGenre("RPG", "RPG"))
+            )
+            isGameDetailsLoading.value = false
+        }
+    }
+    override fun fetchRelatedGames(genreSlug: String) {}
+    override fun fetchReviews(gameId: Int, context: Context) {}
+    override fun checkIfUserHasRated(gameId: Int) {}
+    override fun addReview(gameId: Int, rating: String, reviewText: String, context: Context) {}
 }
