@@ -42,7 +42,7 @@ class GameViewModel : ViewModel() {
 
     private fun fetchFavorites() {
         if (userId == null) return
-        firestore.collection("users").document(userId).collection("favorites").get()
+        firestore.collection("Users").document(userId).collection("favorites").get()
             .addOnSuccessListener { snapshot ->
                 val games = mutableListOf<Game>()
                 for (document in snapshot.documents) {
@@ -74,7 +74,7 @@ class GameViewModel : ViewModel() {
 
     fun toggleFavorite(game: Game, context: Context) {
         if (userId == null) return
-        val favoriteRef = firestore.collection("users").document(userId).collection("favorites").document(game.id.toString())
+        val favoriteRef = firestore.collection("Users").document(userId).collection("favorites").document(game.id.toString())
         if (isFavorite(game.id)) {
             favoriteRef.delete().addOnSuccessListener { 
                 Toast.makeText(context, "Removed from Favourites", Toast.LENGTH_SHORT).show()
