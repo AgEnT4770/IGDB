@@ -1,6 +1,5 @@
 package com.example.igdb
 
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
@@ -60,22 +59,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.igdb.ui.theme.IGDBTheme
 import com.example.igdb.ui.theme.Orange
-import com.google.firebase.Firebase
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.auth
-import com.google.firebase.firestore.firestore
+
 
 
 class SignupActivity : ComponentActivity() {
-    private lateinit var auth: FirebaseAuth
+    private lateinit var authManager: Authentication
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        auth = Firebase.auth
+        authManager = Authentication(this)
         setContent {
             IGDBTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    SignupDesign(modifier = Modifier.padding(innerPadding), auth)
+                    SignupDesign(modifier = Modifier.padding(innerPadding), authManager)
                 }
             }
         }
@@ -84,69 +80,8 @@ class SignupActivity : ComponentActivity() {
 
 
 }
-
-
-fun addUserName(auth: FirebaseAuth, context: Context, firstName: String, lastName: String) {
-    val userId = auth.currentUser?.uid
-    val user = User(userId = userId!!, username = "$firstName $lastName")
-
-    Firebase
-        .firestore
-        .collection("Users")
-        .document(userId)
-        .set(user)
-        .addOnSuccessListener {
-            Toast.makeText(context, "User name Added", Toast.LENGTH_SHORT).show()
-            verifyEmail(auth, context)
-        }
-        .addOnFailureListener {
-            Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
-        }
-
-}
-
-fun addUser(
-    auth: FirebaseAuth,
-    context: Context,
-    email: String,
-    pass: String,
-    firstName: String,
-    lastName: String,
-    onComplete: (Boolean) -> Unit
-) {
-    auth.createUserWithEmailAndPassword(email, pass)
-        .addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                addUserName(auth, context, firstName, lastName)
-                onComplete(true)
-            } else {
-                Toast.makeText(
-                    context,
-                    task.exception?.message ?: "Signup failed",
-                    Toast.LENGTH_SHORT
-                ).show()
-                onComplete(false)
-            }
-
-        }
-}
-
-private fun verifyEmail(auth: FirebaseAuth, context: Context) {
-    val user = Firebase.auth.currentUser
-    user?.sendEmailVerification()?.addOnCompleteListener { task ->
-        if (task.isSuccessful) {
-            Toast.makeText(context, "Check your inbox to verify your email", Toast.LENGTH_SHORT)
-                .show()
-            context.startActivity(Intent(context, LoginActivity::class.java))
-            if (context is LoginActivity) {
-                context.finish()
-            }
-        }
-    }
-}
-
 @Composable
-fun SignupDesign(modifier: Modifier = Modifier, auth: FirebaseAuth? = null) {
+fun SignupDesign(modifier: Modifier = Modifier, authManager: Authentication? = null) {
     Box(
         modifier = modifier
             .fillMaxSize(),
@@ -200,7 +135,7 @@ fun SignupDesign(modifier: Modifier = Modifier, auth: FirebaseAuth? = null) {
                     )
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    SignupCredentials(auth)
+                    SignupCredentials(authManager)
 
                 }
             }
@@ -210,7 +145,7 @@ fun SignupDesign(modifier: Modifier = Modifier, auth: FirebaseAuth? = null) {
 
 
 @Composable
-fun SignupCredentials(auth: FirebaseAuth? = null) {
+fun SignupCredentials(authManager: Authentication? = null) {
     val context = LocalContext.current
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
@@ -427,13 +362,11 @@ fun SignupCredentials(auth: FirebaseAuth? = null) {
 
                     else -> {
                         isLoading = true
-                        addUser(
-                            auth = auth!!,
-                            context = context,
-                            email = email.trim(),
-                            pass = password,
-                            firstName = firstName.trim(),
-                            lastName = lastName.trim()
+                        authManager?.signUp(
+                            email,
+                            password,
+                            firstName,
+                            lastName
                         ) { isLoading = false }
                     }
                 }
