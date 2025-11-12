@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">IGDB</string>
+    <string name="title_activity_login">LoginActivity</string>
+    <string name="title_activity_signup">SignupActivity</string>
+    <string name="about_this_game">About This Game</string>
+    <string name="reviews">Reviews</string>
+    <string name="minimum_specs">Minimum Specs</string>
+    <string name="recommended_specs">Recommended Specs</string>
+    <string name="no_minimum_requirements">No minimum requirements available for PC.</string>
+    <string name="no_recommended_requirements">No recommended requirements available for PC.</string>
+    <string name="did_you_play_this_game">Did You Play This Game?</string>
+    <string name="rate_it">Rate it!</string>
+    <string name="let_the_world_know_how_you_felt">Let the world know how you felt.</string>
+    <string name="related_games">Related Games</string>
+    <string name="write_a_review">Write a review...</string>
+    <string name="rate_the_game">Tell us your rating from 5.0 ... EX : 3.5</string>
+    <string name="submit_review">Submit Review</string>
+    <string name="thanks_for_your_rating">Thanks For Your Rating</string>
+    <string name="tab_to_change_your_rate">tab to change your rate</string>
+</resources>

@@ -1,0 +1,874 @@
+package com.example.igdb
+
+import android.annotation.SuppressLint
+import android.text.Html
+import android.widget.Toast
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.filled.ArrowBackIosNew
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil.compose.rememberAsyncImagePainter
+import com.example.igdb.ui.theme.Gold
+import com.example.igdb.ui.theme.IGDBTheme
+import com.example.igdb.ui.theme.White
+import com.valentinilk.shimmer.shimmer
+
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.material.ExperimentalMaterialApi::class)
+@Composable
+fun GamePage(
+    gameId: Int,
+    viewModel: GameViewModel,
+    onGameClicked: (Int) -> Unit,
+    onBackClicked: () -> Unit
+) {
+    val gameDetails by viewModel.gameDetails
+    val isLoading by viewModel.isGameDetailsLoading
+    val error by viewModel.gameDetailsError
+    val isRefreshing by viewModel.isLoading
+
+    val pullRefreshState = rememberPullRefreshState(isRefreshing, { viewModel.fetchGameDetails(gameId) })
+
+    LaunchedEffect(gameId) {
+        viewModel.fetchGameDetails(gameId)
+        viewModel.checkIfUserHasRated(gameId)
+    }
+
+    Scaffold {
+        Box(Modifier.pullRefresh(pullRefreshState)) {
+            when {
+                isLoading -> {
+                    GameDetailsShimmer()
+                }
+
+                error != null -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(text = "Error: $error")
+                    }
+                }
+
+                gameDetails != null -> {
+                    GameDetails(
+                        modifier = Modifier.padding(it),
+                        game = gameDetails!!,
+                        onGameClicked = onGameClicked,
+                        viewModel = viewModel,
+                        onBackClicked = onBackClicked
+                    )
+                }
+            }
+            PullRefreshIndicator(isRefreshing, pullRefreshState, Modifier.align(Alignment.TopCenter))
+        }
+    }
+}
+
+
+//loading the game details
+@Composable
+fun GameDetails(
+    modifier: Modifier = Modifier,
+    game: Game,
+    viewModel: GameViewModel,
+    onGameClicked: (Int) -> Unit,
+    onBackClicked: () -> Unit
+) {
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val context = LocalContext.current
+    LazyColumn(
+        modifier = modifier
+            .background(color = backgroundColor)
+            .fillMaxSize()
+    ) {
+        item {
+            Box(
+                contentAlignment = Alignment.BottomEnd,
+            ) {
+                Image(
+                    painter = rememberAsyncImagePainter(
+                        model = game.background_image,
+                        placeholder = painterResource(R.drawable.bg),
+                    ),
+                    contentDescription = null,
+                    contentScale = ContentScale.FillBounds,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp)
+                        .drawWithCache {
+                            val gradient = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    backgroundColor.copy(alpha = 0.9F)
+                                ),
+                                startY = size.height / 4,
+                                endY = size.height
+                            )
+                            onDrawWithContent {
+                                drawContent()
+                                drawRect(gradient, blendMode = BlendMode.Multiply)
+                            }
+                        },
+                )
+
+                RatingText(text = game.rating.toString())
+
+                TopButtons(
+                    onBackClicked = onBackClicked,
+                    game = game,
+                    viewModel = viewModel,
+                    context = context,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .fillMaxWidth()
+                )
+
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .width(260.dp)
+                ) {
+                    Text(
+                        text = game.name,
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        maxLines = 2,
+                        textAlign = TextAlign.Start,
+                        modifier = Modifier
+                            .padding(start = 12.dp, bottom = 8.dp)
+                    )
+
+                    Text(
+                        text = game.genres?.joinToString(separator = "|") { it.name } ?: "",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        maxLines = 2,
+                        modifier = Modifier
+                            .padding(start = 12.dp, bottom = 12.dp)
+                    )
+                }
+
+            }
+            InfoCard(
+                modifier = modifier,
+                game = game,
+                onGameClicked = onGameClicked,
+                viewModel = viewModel
+            )
+
+        }
+    }
+}
+
+
+//rating text contains the rating of the game
+@Composable
+fun RatingText(modifier: Modifier = Modifier, text: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .padding(8.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.Star,
+            contentDescription = null,
+            tint = Gold,
+            modifier = Modifier
+                .padding(end = 4.dp)
+                .size(16.dp)
+
+        )
+
+        Text(
+            text = text,
+            color = Gold,
+            fontSize = 16.sp,
+        )
+
+    }
+}
+
+
+//text to expand after pressing
+@Composable
+fun ExpandableText(
+    modifier: Modifier = Modifier,
+    text: String,
+    color: Color = MaterialTheme.colorScheme.onSurface,
+    maxLines: Int = 3
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+    Box(
+        modifier = Modifier
+            .padding(start = 12.dp, end = 16.dp, bottom = 12.dp)
+            .animateContentSize()
+    ) {
+        Text(
+            text = text,
+            maxLines = if (isExpanded) Int.MAX_VALUE else maxLines,
+            overflow = TextOverflow.Ellipsis,
+            color = color,
+            fontFamily = FontFamily.Default,
+            lineHeight = 16.sp,
+            letterSpacing = 2.sp,
+            modifier = Modifier.clickable { isExpanded = !isExpanded }
+        )
+    }
+
+}
+
+
+// the back an add to favourites buttons
+@Composable
+fun TopButtons(modifier: Modifier = Modifier, onBackClicked: () -> Unit, game: Game, viewModel: GameViewModel, context: android.content.Context) {
+    val isFavorite = viewModel.isFavorite(game.id)
+
+    Row(
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = modifier.padding(horizontal = 8.dp, vertical = 12.dp),
+    ) {
+        Button(
+            onClick = onBackClicked,
+            shape = CircleShape,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
+            contentPadding = PaddingValues(0.dp),
+            modifier = Modifier.size(48.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.ArrowBackIosNew,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface,
+            )
+
+        }
+
+        Button(
+            onClick = {viewModel.toggleFavorite(game, context)},
+            shape = CircleShape,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+            ),
+            contentPadding = PaddingValues(0.dp),
+            modifier = Modifier.size(48.dp)
+        ) {
+            Icon(
+                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Default.FavoriteBorder ,
+                contentDescription = null ,
+                tint = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+            )
+
+        }
+    }
+}
+
+
+//the card under the game image which contains all it's info
+@Composable
+fun InfoCard(
+    modifier: Modifier = Modifier,
+    game: Game,
+    viewModel: GameViewModel,
+    onGameClicked: (Int) -> Unit
+) {
+    val description = remember(game.description) {
+        Html.fromHtml(game.description ?: "", Html.FROM_HTML_MODE_LEGACY).toString()
+    }
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+
+    ) {
+        Text(
+            text = stringResource(R.string.about_this_game),
+            color = MaterialTheme.colorScheme.onSurface,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.SemiBold,
+            fontFamily = FontFamily.SansSerif,
+            modifier = Modifier
+                .padding(start = 12.dp, top = 16.dp, bottom = 12.dp)
+        )
+        ExpandableText(text = description, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        RelatedGames(
+            viewModel = viewModel,
+            game = game,
+            onGameClicked = onGameClicked
+        )
+        AddingRateManager(modifier = modifier, gameId = game.id, viewModel = viewModel)
+        TabMenu(game = game, viewModel = viewModel)
+    }
+}
+
+
+//tab menu for navigation between tabs
+@Composable
+fun TabMenu(game: Game, viewModel: GameViewModel) {
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val tabs = listOf(
+        stringResource(R.string.reviews),
+        stringResource(R.string.minimum_specs), stringResource(R.string.recommended_specs)
+    )
+
+    val reviews by viewModel.reviews
+    val isLoading by viewModel.areReviewsLoading
+    val context = LocalContext.current
+    LaunchedEffect(key1 = selectedTabIndex) {
+        if (selectedTabIndex == 0) {
+            viewModel.fetchReviews(game.id, context)
+        }
+    }
+
+    Column {
+        TabRow(selectedTabIndex = selectedTabIndex, modifier = Modifier.padding(4.dp)) {
+            tabs.forEachIndexed { index, title ->
+                Tab(
+                    selected = selectedTabIndex == index,
+                    onClick = { selectedTabIndex = index },
+                    text = { Text(text = title, fontSize = 12.sp) }
+                )
+            }
+        }
+
+        val pcRequirements = game.platforms?.find { it.platform.slug == "pc" }?.requirements
+
+        when (selectedTabIndex) {
+            0 -> {
+                if (isLoading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(400.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                } else if (reviews.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(400.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("No reviews yet. Be the first!")
+                    }
+                } else {
+                    LazyColumn(modifier = Modifier.height(400.dp)) {
+                        items(reviews) { review ->
+                            ReviewCard(review = review)
+                        }
+                    }
+                }
+            }
+
+            1 -> {
+                val minimumRequirements = pcRequirements?.minimum
+                ExpandableText(
+                    text = minimumRequirements ?: stringResource(R.string.no_minimum_requirements),
+                    maxLines = 10,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+
+            2 -> {
+                val recommendedRequirements = pcRequirements?.recommended
+                ExpandableText(
+                    text = recommendedRequirements
+                        ?: stringResource(R.string.no_recommended_requirements),
+                    maxLines = 10,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ReviewCard(modifier: Modifier = Modifier, review: Review) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        ),
+        modifier = Modifier
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .fillMaxWidth()
+    ) {
+
+        Column {
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .padding(start = 12.dp, top = 12.dp, bottom = 4.dp)
+                    .fillMaxWidth()
+
+            ) {
+                if (review.profilePictureUrl.isNotEmpty()) {
+                    Image(
+                        painter = rememberAsyncImagePainter(model = review.profilePictureUrl),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Image(
+                        painter = painterResource(id = R.drawable.app_icn),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                    )
+                }
+
+                Text(
+                    text = review.reviewerName,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .padding(start = 8.dp)
+                        .weight(1f)
+
+                )
+
+                RatingText(text = review.rating)
+            }
+            ExpandableText(
+                text = review.review,
+            )
+
+
+        }
+
+
+    }
+}
+
+
+//fetching the related games from the api
+@Composable
+fun RelatedGames(
+    modifier: Modifier = Modifier,
+    viewModel: GameViewModel,
+    game: Game,
+    onGameClicked: (Int) -> Unit
+) {
+    val relatedGames by viewModel.relatedGames
+    val filterRelatedGames = relatedGames.filter { it.id != game.id }
+
+
+    LaunchedEffect(game.genres) {
+        game.genres?.firstOrNull()?.slug?.let {
+            viewModel.fetchRelatedGames(it)
+        }
+    }
+
+
+    if (filterRelatedGames.isNotEmpty()) {
+        Column {
+            Text(
+                text = stringResource(R.string.related_games),
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold,
+                fontFamily = FontFamily.SansSerif,
+                modifier = Modifier
+                    .padding(start = 12.dp, bottom = 12.dp)
+            )
+
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp)
+            ) {
+                items(filterRelatedGames) { relatedGame ->
+                    GameCard(
+                        game = relatedGame,
+                        onGameClicked = onGameClicked
+                    )
+                }
+            }
+        }
+    }
+}
+
+//manager of the rating process to write and edit and submit a review
+@Composable
+fun AddingRateManager(modifier: Modifier = Modifier, gameId: Int, viewModel: GameViewModel) {
+    var showBottomSheet by remember { mutableStateOf(false) }
+    val hasRated by viewModel.hasRated
+
+    Column {
+        Text(
+            text = stringResource(R.string.did_you_play_this_game),
+            color = MaterialTheme.colorScheme.onSurface,
+            fontSize = 20.sp,
+            fontFamily = FontFamily.SansSerif,
+            modifier = Modifier
+                .padding(start = 12.dp, top = 12.dp)
+        )
+        RateItCard(hasRated = hasRated, onClick = { showBottomSheet = true })
+    }
+    if (showBottomSheet) {
+        BottomSheet(
+            modifier = modifier,
+            onDismiss = {
+                showBottomSheet = false
+                viewModel.checkIfUserHasRated(gameId)
+            }, gameId = gameId, viewModel = viewModel
+        )
+    }
+}
+
+//card to contain the rating to click for adding and editing the review
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RateItCard(modifier: Modifier = Modifier, hasRated: Boolean, onClick: () -> Unit = {}) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        ),
+        modifier = Modifier
+            .padding(horizontal = 12.dp, vertical = 12.dp)
+            .fillMaxWidth()
+            .clickable { onClick() }
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxWidth()
+        ) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                shape = CircleShape,
+                modifier = Modifier
+                    .padding(end = 8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Star,
+                    contentDescription = null,
+                    tint = Gold,
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .size(32.dp)
+
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+            ) {
+                if (hasRated) {
+                    Text(
+                        text = stringResource(R.string.thanks_for_your_rating),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 20.sp,
+                        fontFamily = FontFamily.SansSerif,
+                        modifier = Modifier
+                            .padding(bottom = 4.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.tab_to_change_your_rate),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        fontSize = 12.sp,
+                        fontFamily = FontFamily.SansSerif,
+                    )
+                } else {
+                    Text(
+                        text = stringResource(R.string.rate_it),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 20.sp,
+                        fontFamily = FontFamily.SansSerif,
+                        modifier = Modifier
+                            .padding(bottom = 4.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.let_the_world_know_how_you_felt),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        fontSize = 12.sp,
+                        fontFamily = FontFamily.SansSerif,
+                    )
+                }
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                contentDescription = null,
+                tint = Gold,
+                modifier = Modifier
+                    .size(32.dp)
+
+            )
+
+        }
+
+    }
+}
+
+@Composable
+fun GameDetailsShimmer() {
+    LazyColumn {
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(300.dp)
+                    .shimmer()
+                    .background(Color.Gray)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Column(modifier = Modifier.padding(horizontal = 12.dp)){
+                Box(
+                    modifier = Modifier
+                        .width(260.dp)
+                        .height(32.dp)
+                        .shimmer()
+                        .background(Color.Gray)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .width(180.dp)
+                        .height(20.dp)
+                        .shimmer()
+                        .background(Color.Gray)
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Card(modifier = Modifier.padding(horizontal = 12.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(600.dp)
+                        .shimmer()
+                        .background(Color.Gray)
+                )
+            }
+
+        }
+    }
+}
+
+
+
+//preview to show the game details page
+@SuppressLint("ViewModelConstructorInComposable")
+@Preview(showSystemUi = true)
+@Composable
+fun GameDetailsPreview() {
+    IGDBTheme {
+        val game = Game(
+            id = 1,
+            name = "The Witcher 3: Wild Hunt",
+            background_image = "https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg",
+            description = "<p>The Witcher 3: Wild Hunt is a 2015 action role-playing game developed and published by Polish developer CD Projekt Red and is based on The Witcher series of fantasy novels by Andrzej Sapkowski. The game is the sequel to the 2011 game The Witcher 2: Assassins of Kings, and the third main installment in The Witcher video game series, played in an open world with a third-person perspective.</p>",
+            platforms = listOf(
+                PlatformEntry(
+                    platform = Platform(1, "PC", "pc"),
+                    requirements = Requirements(
+                        minimum = "Intel CPU Core i5-2500K 3.3GHz / AMD CPU Phenom II X4 940",
+                        recommended = "Intel CPU Core i7 3770 3.4 GHz / AMD CPU AMD FX-8350 4 GHz"
+                    )
+                )
+            ),
+            rating = 3.6,
+            genres = listOf(GameGenre("Action", "Action"), GameGenre("RPG", "RPG"))
+        )
+        Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+            GameDetails(
+                modifier = Modifier.padding(innerPadding),
+                game = game,
+                viewModel = PreviewGameViewModel(),
+                onGameClicked = {},
+                onBackClicked = {}
+            )
+        }
+    }
+}
+
+//a sheet which contains the review and rating fields
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BottomSheet(modifier: Modifier = Modifier, gameId: Int, viewModel: GameViewModel, onDismiss: () -> Unit) {
+    val sheetState = rememberModalBottomSheetState()
+    var review by remember { mutableStateOf("") }
+    var rate by remember { mutableStateOf("") }
+    val context = LocalContext.current
+
+    ModalBottomSheet(
+        onDismissRequest = {
+            onDismiss()
+        },
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+        modifier = modifier
+            .padding(horizontal = 4.dp)
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier
+                .padding(horizontal = 8.dp)
+        ) {
+            OutlinedTextField(
+                value = review,
+                onValueChange = { review = it },
+                label = { Text(stringResource(R.string.write_a_review)) },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text
+                ),
+                textStyle = TextStyle(
+                    fontSize = 16.sp
+                ),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = rate,
+                onValueChange = { newText ->
+                    if (newText.isEmpty()) {
+                        rate = newText
+                    } else if (newText.count { it == '.' } <= 1) {
+                        val value = newText.toDoubleOrNull()
+                        if (value != null) {
+                            if (value <= 5.0) {
+                                rate = newText
+                            }
+                        } else {
+                            if (newText.endsWith(".") && newText.count { it == '.' } == 1) {
+                                rate = newText
+                            }
+                        }
+                    }
+                },
+                label = { Text(stringResource(R.string.rate_the_game)) },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number
+                ),
+                textStyle = TextStyle(
+                    fontSize = 16.sp
+                ),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+            )
+
+            Button(
+                onClick = {
+                    if (rate.isNotBlank() && review.isNotBlank()) {
+                        viewModel.addReview(gameId, rate, review, context)
+                        onDismiss()
+                    } else {
+                        Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = White
+                ),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier
+                    .padding(bottom = 12.dp)
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.submit_review),
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
+
+    }
+
+}
