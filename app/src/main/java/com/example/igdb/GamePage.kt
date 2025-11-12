@@ -1,5 +1,7 @@
 package com.example.igdb
 
+import android.R.attr.contentDescription
+import android.R.attr.tint
 import android.content.Context
 import android.text.Html
 import android.widget.Toast
@@ -78,6 +80,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.example.igdb.ui.theme.Gold
 import com.example.igdb.ui.theme.IGDBTheme
@@ -88,6 +91,7 @@ import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.google.firebase.firestore.FirebaseFirestore
 
 // loader
 @Composable
@@ -197,7 +201,7 @@ fun GameDetails(
                 Image(
                     painter = rememberAsyncImagePainter(
                         model = game.background_image,
-                        placeholder = painterResource(R.drawable.gamingbook),
+                        placeholder = painterResource(R.drawable.img),
                     ),
                     contentDescription = null,
                     contentScale = ContentScale.FillBounds,
@@ -333,14 +337,7 @@ fun ExpandableText(
 
 // the back an add to favourites buttons
 @Composable
-fun TopButtons(
-    modifier: Modifier = Modifier,
-    onBackClicked: () -> Unit,
-    game: Game,
-    viewModel: GameViewModel,
-    context: Context
-) {
-
+fun TopButtons(modifier: Modifier = Modifier, onBackClicked: () -> Unit, game: Game, viewModel: GameViewModel, context: Context) {
     val isFavorite = viewModel.isFavorite(game.id)
 
     Row(
@@ -365,7 +362,7 @@ fun TopButtons(
         }
 
         Button(
-            onClick = { viewModel.toggleFavorite(game, context) },
+            onClick = {viewModel.toggleFavorite(game, context)},
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -374,8 +371,8 @@ fun TopButtons(
             modifier = Modifier.size(48.dp)
         ) {
             Icon(
-                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = null,
+                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Default.FavoriteBorder ,
+                contentDescription = null ,
                 tint = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
             )
 
@@ -588,11 +585,10 @@ fun RelatedGames(
     val relatedGames by viewModel.relatedGames
     val filterRelatedGames = relatedGames.filter { it.id != game.id }
 
-    if (!LocalInspectionMode.current) {
-        LaunchedEffect(game.genres) {
-            game.genres?.firstOrNull()?.slug?.let {
-                viewModel.fetchRelatedGames(it)
-            }
+
+    LaunchedEffect(game.genres) {
+        game.genres?.firstOrNull()?.slug?.let {
+            viewModel.fetchRelatedGames(it)
         }
     }
 
@@ -635,18 +631,16 @@ fun AddingRateManager(modifier: Modifier = Modifier, gameId: Int, refreshTrigger
     var hasRated by remember { mutableStateOf(false) }
     var checkTrigger by remember { mutableIntStateOf(0) }
 
-    if (!LocalInspectionMode.current) {
-        LaunchedEffect(key1 = gameId, key2 = checkTrigger) {
-            val auth = Firebase.auth
-            val userId = auth.currentUser?.uid
-            if (userId != null) {
-                Firebase.firestore.collection("Reviews").document(gameId.toString())
-                    .collection("game_reviews").document(userId)
-                    .get()
-                    .addOnSuccessListener { document ->
-                        hasRated = document.exists()
-                    }
-            }
+    LaunchedEffect(key1 = gameId, key2 = checkTrigger) {
+        val auth = Firebase.auth
+        val userId = auth.currentUser?.uid
+        if (userId != null) {
+            Firebase.firestore.collection("Reviews").document(gameId.toString())
+                .collection("game_reviews").document(userId)
+                .get()
+                .addOnSuccessListener { document ->
+                    hasRated = document.exists()
+                }
         }
     }
 
