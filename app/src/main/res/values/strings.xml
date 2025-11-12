@@ -12,4 +12,5 @@
     <string name="rate_it">Rate it!</string>
     <string name="let_the_world_know_how_you_felt">Let the world know how you felt.</string>
     <string name="related_games">Related Games</string>
+    <string name="title_activity_splash">SplashActivity</string>
 </resources>
