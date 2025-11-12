@@ -93,6 +93,14 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        CloudinaryUploader.init(
+            context = this,
+            cloudName = "dbj2gefic",
+            apiKey = "541522978464643",
+            apiSecret = "5tuReWBqAjDfblk06BorLIsZenI"
+        )
+        
         setContent {
             IGDBTheme {
                 AppNavigation()
@@ -301,7 +309,7 @@ fun MainScreen(navController: NavController, gameViewModel: GameViewModel) { // 
                         navController.navigate("gameDetails/$it")
                     }
                 )
-                3 -> ProfilePage(modifier = Modifier)
+                3 -> PersonalPage(modifier = Modifier)
             }
         }
     }

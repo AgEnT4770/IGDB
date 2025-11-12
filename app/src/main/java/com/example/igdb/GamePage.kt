@@ -455,7 +455,6 @@ fun TabMenu(game: Game, viewModel: GameViewModel) {
     }
 }
 
-//card to contain the reviews
 @Composable
 fun ReviewCard(modifier: Modifier = Modifier, review: Review) {
     Card(
@@ -476,13 +475,24 @@ fun ReviewCard(modifier: Modifier = Modifier, review: Review) {
                     .fillMaxWidth()
 
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.app_icn),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                )
+                if (review.profilePictureUrl.isNotEmpty()) {
+                    Image(
+                        painter = rememberAsyncImagePainter(model = review.profilePictureUrl),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Image(
+                        painter = painterResource(id = R.drawable.app_icn),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                    )
+                }
 
                 Text(
                     text = review.reviewerName,

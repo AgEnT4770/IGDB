@@ -1,6 +1,7 @@
 package com.example.igdb
 
 import android.content.Context
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -13,6 +14,9 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import retrofit2.Retrofit
+import java.net.ConnectException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 
 open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
     private val apiService = Retrofit.Builder()
@@ -35,10 +39,34 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
     val areReviewsLoading = mutableStateOf(false)
     val hasRated = mutableStateOf(false)
 
+    companion object {
+        private const val TAG = "GameViewModel"
+    }
 
     private val firestore = if (inPreview) null else FirebaseFirestore.getInstance()
     private val auth = if (inPreview) null else FirebaseAuth.getInstance()
     private val userId = auth?.currentUser?.uid
+
+    private fun handleError(exception: Exception?, defaultMessage: String): String {
+        return when (exception) {
+            is UnknownHostException -> {
+                Log.e(TAG, "No internet connection", exception)
+                "No internet connection. Please check your network and try again."
+            }
+            is SocketTimeoutException -> {
+                Log.e(TAG, "Connection timeout", exception)
+                "Connection timeout. Please check your internet and try again."
+            }
+            is ConnectException -> {
+                Log.e(TAG, "Connection failed", exception)
+                "Unable to connect. Please check your internet connection."
+            }
+            else -> {
+                Log.e(TAG, defaultMessage, exception)
+                exception?.message ?: defaultMessage
+            }
+        }
+    }
 
     init {
         if (!inPreview) {
@@ -48,11 +76,20 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
 
     private fun fetchFavorites() {
         if (userId == null) return
-        firestore?.collection("Users")?.document(userId)?.collection("favorites")?.get()
-            ?.addOnSuccessListener { snapshot ->
-                val gamesList = snapshot.documents.mapNotNull { it.toObject(Game::class.java) }
-                favoriteGames.value = gamesList
-            }
+        try {
+            firestore?.collection("Users")?.document(userId)?.collection("favorites")?.get()
+                ?.addOnSuccessListener { snapshot ->
+                    val gamesList = snapshot.documents.mapNotNull { it.toObject(Game::class.java) }
+                    favoriteGames.value = gamesList
+                }
+                ?.addOnFailureListener { exception ->
+                        val errorMessage = handleError(exception, "Failed to load favorites")
+                        Log.e(TAG, errorMessage, exception)
+                    }
+        } catch (e: Exception) {
+            val errorMessage = handleError(e, "Failed to load favorites")
+            Log.e(TAG, errorMessage, e)
+        }
     }
 
     open fun isFavorite(gameId: Int): Boolean {
@@ -61,23 +98,41 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
 
     fun toggleFavorite(game: Game, context: Context) {
         if (userId == null) return
-        val favoriteRef = firestore?.collection("Users")?.document(userId)?.collection("favorites")?.document(game.id.toString())
-        if (isFavorite(game.id)) {
-            favoriteRef?.delete()?.addOnSuccessListener { 
-                Toast.makeText(context, "Removed from Favourites", Toast.LENGTH_SHORT).show()
-                fetchFavorites() 
+        try {
+            val favoriteRef = firestore?.collection("Users")?.document(userId)?.collection("favorites")?.document(game.id.toString())
+            if (isFavorite(game.id)) {
+                favoriteRef?.delete()
+                    ?.addOnSuccessListener { 
+                        Toast.makeText(context, "Removed from Favourites", Toast.LENGTH_SHORT).show()
+                        fetchFavorites() 
+                    }
+                    ?.addOnFailureListener { exception ->
+                        val errorMessage = handleError(exception, "Failed to remove from favorites")
+                        Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+                        Log.e(TAG, errorMessage, exception)
+                    }
+            } else {
+                val gameData = hashMapOf(
+                    "id" to game.id,
+                    "name" to game.name,
+                    "background_image" to game.background_image,
+                    "rating" to game.rating
+                )
+                favoriteRef?.set(gameData)
+                    ?.addOnSuccessListener { 
+                        Toast.makeText(context, "Added to Favourites", Toast.LENGTH_SHORT).show()
+                        fetchFavorites() 
+                    }
+                    ?.addOnFailureListener { exception ->
+                        val errorMessage = handleError(exception, "Failed to add to favorites")
+                        Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+                        Log.e(TAG, errorMessage, exception)
+                    }
             }
-        } else {
-            val gameData = hashMapOf(
-                "id" to game.id,
-                "name" to game.name,
-                "background_image" to game.background_image,
-                "rating" to game.rating
-            )
-            favoriteRef?.set(gameData)?.addOnSuccessListener { 
-                Toast.makeText(context, "Added to Favourites", Toast.LENGTH_SHORT).show()
-                fetchFavorites() 
-            }
+        } catch (e: Exception) {
+            val errorMessage = handleError(e, "Failed to update favorites")
+            Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+            Log.e(TAG, errorMessage, e)
         }
     }
 
@@ -207,23 +262,84 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
 
     open fun fetchReviews(gameId: Int, context: Context) {
         areReviewsLoading.value = true
-        firestore?.collection("Reviews")?.document(gameId.toString())?.collection("game_reviews")?.get()
-            ?.addOnSuccessListener { documents ->
-                reviews.value = documents.mapNotNull { it.toObject(Review::class.java) }
-                areReviewsLoading.value = false
-            }
-            ?.addOnFailureListener { exception ->
-                Toast.makeText(context, "Could not fetch reviews: ${exception.message}", Toast.LENGTH_LONG).show()
-                areReviewsLoading.value = false
-            }
+        try {
+            firestore?.collection("Reviews")?.document(gameId.toString())?.collection("game_reviews")?.get()
+                ?.addOnSuccessListener { documents ->
+                    val reviewsList = documents.mapNotNull { it.toObject(Review::class.java) }
+                    
+                    val reviewsWithPictures = Array<Review?>(reviewsList.size) { null }
+                    var completedFetches = 0
+                    val totalReviews = reviewsList.size
+                    
+                    if (totalReviews == 0) {
+                        reviews.value = reviewsList
+                        areReviewsLoading.value = false
+                        return@addOnSuccessListener
+                    }
+                    
+                    reviewsList.forEachIndexed { index, review ->
+                        if (review.profilePictureUrl.isNotEmpty() || review.reviewerId.isEmpty()) {
+                            reviewsWithPictures[index] = review
+                            completedFetches++
+                            
+                            if (completedFetches == totalReviews) {
+                                reviews.value = reviewsWithPictures.filterNotNull().toList()
+                                areReviewsLoading.value = false
+                            }
+                        } else {
+                            firestore?.collection("Users")?.document(review.reviewerId)?.get()
+                                ?.addOnSuccessListener { userDoc ->
+                                    val profilePictureUrl = userDoc.getString("profilePictureUrl") ?: ""
+                                    val updatedReview = review.copy(profilePictureUrl = profilePictureUrl)
+                                    reviewsWithPictures[index] = updatedReview
+                                    completedFetches++
+                                    
+                                    if (completedFetches == totalReviews) {
+                                        reviews.value = reviewsWithPictures.filterNotNull()
+                                        areReviewsLoading.value = false
+                                    }
+                                }
+                                ?.addOnFailureListener {
+                                    reviewsWithPictures[index] = review
+                                    completedFetches++
+                                    
+                                    if (completedFetches == totalReviews) {
+                                        reviews.value = reviewsWithPictures.filterNotNull()
+                                        areReviewsLoading.value = false
+                                    }
+                                }
+                        }
+                    }
+                }
+                ?.addOnFailureListener { exception ->
+                    val errorMessage = handleError(exception, "Could not fetch reviews")
+                    Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                    Log.e(TAG, errorMessage, exception)
+                    areReviewsLoading.value = false
+                }
+        } catch (e: Exception) {
+            val errorMessage = handleError(e, "Could not fetch reviews")
+            Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+            Log.e(TAG, errorMessage, e)
+            areReviewsLoading.value = false
+        }
     }
 
     open fun checkIfUserHasRated(gameId: Int) {
         if (userId == null) return
-        firestore?.collection("Reviews")?.document(gameId.toString())?.collection("game_reviews")?.document(userId)?.get()
-            ?.addOnSuccessListener { document ->
-                hasRated.value = document.exists()
-            }
+        try {
+            firestore?.collection("Reviews")?.document(gameId.toString())?.collection("game_reviews")?.document(userId)?.get()
+                ?.addOnSuccessListener { document ->
+                    hasRated.value = document.exists()
+                }
+                ?.addOnFailureListener { exception ->
+                        val errorMessage = handleError(exception, "Failed to check rating status")
+                        Log.e(TAG, errorMessage, exception)
+                    }
+        } catch (e: Exception) {
+            val errorMessage = handleError(e, "Failed to check rating status")
+            Log.e(TAG, errorMessage, e)
+        }
     }
 
     open fun addReview(gameId: Int, rating: String, reviewText: String, context: Context) {
@@ -232,25 +348,40 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
             return
         }
 
-        firestore?.collection("Users")?.document(userId)?.get()?.addOnSuccessListener { userDoc ->
-            val username = userDoc.getString("username") ?: ""
-            val review = Review(
-                reviewerId = userId,
-                reviewerName = username,
-                rating = rating,
-                review = reviewText
-            )
-            firestore.collection("Reviews").document(gameId.toString())
-                .collection("game_reviews").document(userId).set(review)
-                .addOnSuccessListener {
-                    Toast.makeText(context, "Rate Added", Toast.LENGTH_SHORT).show()
-                    fetchReviews(gameId, context)
-                    checkIfUserHasRated(gameId)
-                }.addOnFailureListener { e ->
-                    Toast.makeText(context, "Failed to submit review: ${e.message}", Toast.LENGTH_SHORT).show()
+        try {
+            firestore?.collection("Users")?.document(userId)?.get()
+                ?.addOnSuccessListener { userDoc ->
+                    val username = userDoc.getString("username") ?: ""
+                    val profilePictureUrl = userDoc.getString("profilePictureUrl") ?: ""
+                    val review = Review(
+                        reviewerId = userId,
+                        reviewerName = username,
+                        rating = rating,
+                        review = reviewText,
+                        profilePictureUrl = profilePictureUrl
+                    )
+                    firestore?.collection("Reviews")?.document(gameId.toString())
+                        ?.collection("game_reviews")?.document(userId)?.set(review)
+                        ?.addOnSuccessListener {
+                            Toast.makeText(context, "Rate Added", Toast.LENGTH_SHORT).show()
+                            fetchReviews(gameId, context)
+                            checkIfUserHasRated(gameId)
+                        }
+                        ?.addOnFailureListener { exception ->
+                            val errorMessage = handleError(exception, "Failed to submit review")
+                            Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+                            Log.e(TAG, errorMessage, exception)
+                        }
                 }
-        }?.addOnFailureListener { 
-            Toast.makeText(context, "Failed to fetch user profile", Toast.LENGTH_SHORT).show()
+                ?.addOnFailureListener { exception ->
+                    val errorMessage = handleError(exception, "Failed to fetch user profile")
+                    Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+                    Log.e(TAG, errorMessage, exception)
+                }
+        } catch (e: Exception) {
+            val errorMessage = handleError(e, "Failed to submit review")
+            Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+            Log.e(TAG, errorMessage, e)
         }
     }
 }
