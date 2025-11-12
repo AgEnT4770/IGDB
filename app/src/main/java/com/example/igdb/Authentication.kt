@@ -12,7 +12,6 @@ import com.google.firebase.firestore.firestore
 class Authentication(private val context: Context) {
 
     private val auth: FirebaseAuth = Firebase.auth
-    private val db = Firebase.firestore
 
     fun signUp(
         email: String,
@@ -34,17 +33,21 @@ class Authentication(private val context: Context) {
     }
 
     private fun addUserName(firstName: String, lastName: String) {
-        val userId = auth.currentUser?.uid ?: return
-        val user = User(id = userId, name = "$firstName $lastName")
+        val userId = auth.currentUser?.uid
+        val user = User(userId = userId!!, username = "$firstName $lastName")
 
-        db.collection("users").document(userId)
+        Firebase
+            .firestore
+            .collection("Users")
+            .document(userId)
             .set(user)
             .addOnSuccessListener {
                 verifyEmail()
             }
             .addOnFailureListener {
-                Toast.makeText(context, it.message ?: "Error adding user name", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
             }
+
     }
 
     private fun verifyEmail() {
