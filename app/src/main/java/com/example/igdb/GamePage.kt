@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.ArrowBackIosNew
@@ -33,18 +34,24 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,10 +61,13 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -66,9 +76,12 @@ import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import com.example.igdb.ui.theme.Gold
 import com.example.igdb.ui.theme.IGDBTheme
+import com.example.igdb.ui.theme.White
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
+import kotlin.toString
 
 
 @Composable
@@ -200,6 +213,7 @@ fun GameDetails(
 
             }
             InfoCard(
+                modifier = modifier,
                 game = game,
                 onGameClicked = onGameClicked,
                 viewModel = viewModel,
@@ -341,7 +355,7 @@ fun InfoCard(
             game = game,
             onGameClicked = onGameClicked
         )
-        AddingRateManager()
+        AddingRateManager(modifier = modifier, gameId = game.id)
         TabMenu(game = game)
     }
 }
@@ -353,6 +367,31 @@ fun TabMenu(game: Game) {
         stringResource(R.string.reviews),
         stringResource(R.string.minimum_specs), stringResource(R.string.recommended_specs)
     )
+
+    var reviews by remember { mutableStateOf<List<Review>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    LaunchedEffect(selectedTabIndex) {
+        if (selectedTabIndex == 0) {
+            isLoading = true
+            Firebase.firestore.collection("Reviews").document(game.id.toString())
+                .collection("game_reviews")
+                .get()
+                .addOnSuccessListener { documents ->
+                    reviews = documents.mapNotNull { it.toObject(Review::class.java) }
+                    isLoading = false
+                }
+                .addOnFailureListener { exception ->
+                    Toast.makeText(
+                        context,
+                        "Could not fetch reviews: ${exception.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    isLoading = false
+                }
+        }
+    }
 
     Column {
         TabRow(selectedTabIndex = selectedTabIndex, modifier = Modifier.padding(4.dp)) {
@@ -369,9 +408,29 @@ fun TabMenu(game: Game) {
 
         when (selectedTabIndex) {
             0 -> {
-                LazyColumn(modifier = Modifier.height(400.dp)) {
-                    items(10) {
-                        ReviewCard()
+                if (isLoading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(400.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                } else if (reviews.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(400.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("No reviews yet. Be the first!")
+                    }
+                } else {
+                    LazyColumn(modifier = Modifier.height(400.dp)) {
+                        items(reviews) { review ->
+                            ReviewCard(review = review)
+                        }
                     }
                 }
             }
@@ -399,7 +458,7 @@ fun TabMenu(game: Game) {
 }
 
 @Composable
-fun ReviewCard(modifier: Modifier = Modifier) {
+fun ReviewCard(modifier: Modifier = Modifier, review: Review) {
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer
@@ -427,7 +486,7 @@ fun ReviewCard(modifier: Modifier = Modifier) {
                 )
 
                 Text(
-                    text = "Mohamed Ibrahim",
+                    text = review.reviewerName,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -437,10 +496,10 @@ fun ReviewCard(modifier: Modifier = Modifier) {
 
                 )
 
-                RatingText(text = "5.0")
+                RatingText(text = review.rating)
             }
             ExpandableText(
-                text = "After years of hype and anticipation, Cyberpunk 2077 delivers a visually stunning and narratively rich dive into the futuristic city of Night City. You play as V, a mercenary navigating a world of corporate corruption, cybernetic enhancements, and moral ambiguity.",
+                text = review.review,
             )
 
 
@@ -499,22 +558,44 @@ fun RelatedGames(
 }
 
 @Composable
-fun AddingRateManager(modifier: Modifier = Modifier) {
-    Column() {
+fun AddingRateManager(modifier: Modifier = Modifier, gameId: Int) {
+    var showBottomSheet by remember { mutableStateOf(false) }
+
+    var hasRated by remember { mutableStateOf(false) }
+    var checkTrigger by remember { mutableIntStateOf(0) }
+    val auth = Firebase.auth
+
+    LaunchedEffect(key1 = gameId, key2 = checkTrigger) {
+        val userId = auth.currentUser?.uid
+        if (userId != null) {
+            Firebase.firestore.collection("Reviews").document(gameId.toString())
+                .collection("game_reviews").document(userId)
+                .get()
+                .addOnSuccessListener { document ->
+                    hasRated = document.exists()
+                }
+        }
+    }
+
+    Column {
         Text(
-            text = stringResource(R.string.did_you_played_this_game),
+            text = stringResource(R.string.did_you_play_this_game),
             color = MaterialTheme.colorScheme.onSurface,
             fontSize = 20.sp,
             fontFamily = FontFamily.SansSerif,
             modifier = Modifier
                 .padding(start = 12.dp, top = 12.dp)
         )
-        RateItCard()
+        RateItCard(hasRated = hasRated, onClick = { showBottomSheet = true })
+    }
+    if (showBottomSheet) {
+        BottomSheet(modifier = modifier, onDismiss = { showBottomSheet = false }, gameId = gameId)
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RateItCard(modifier: Modifier = Modifier, isClicked: (Boolean) -> Unit = {}) {
+fun RateItCard(modifier: Modifier = Modifier, hasRated: Boolean, onClick: () -> Unit = {}) {
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer
@@ -522,6 +603,7 @@ fun RateItCard(modifier: Modifier = Modifier, isClicked: (Boolean) -> Unit = {})
         modifier = Modifier
             .padding(horizontal = 12.dp, vertical = 12.dp)
             .fillMaxWidth()
+            .clickable { onClick() }
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -551,20 +633,37 @@ fun RateItCard(modifier: Modifier = Modifier, isClicked: (Boolean) -> Unit = {})
                 modifier = Modifier
                     .weight(1f)
             ) {
-                Text(
-                    text = stringResource(R.string.rate_it),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 20.sp,
-                    fontFamily = FontFamily.SansSerif,
-                    modifier = Modifier
-                        .padding(bottom = 4.dp)
-                )
-                Text(
-                    text = stringResource(R.string.let_the_world_know_how_you_felt),
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    fontSize = 12.sp,
-                    fontFamily = FontFamily.SansSerif,
-                )
+                if (hasRated) {
+                    Text(
+                        text = stringResource(R.string.thanks_for_your_rating),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 20.sp,
+                        fontFamily = FontFamily.SansSerif,
+                        modifier = Modifier
+                            .padding(bottom = 4.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.tab_to_change_your_rate),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        fontSize = 12.sp,
+                        fontFamily = FontFamily.SansSerif,
+                    )
+                } else {
+                    Text(
+                        text = stringResource(R.string.rate_it),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 20.sp,
+                        fontFamily = FontFamily.SansSerif,
+                        modifier = Modifier
+                            .padding(bottom = 4.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.let_the_world_know_how_you_felt),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        fontSize = 12.sp,
+                        fontFamily = FontFamily.SansSerif,
+                    )
+                }
             }
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
@@ -576,7 +675,6 @@ fun RateItCard(modifier: Modifier = Modifier, isClicked: (Boolean) -> Unit = {})
             )
 
         }
-
 
     }
 }
@@ -614,22 +712,162 @@ fun GameDetailsPreview() {
 
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun BottomSheet(modifier: Modifier = Modifier, gameId: Int, onDismiss: () -> Unit) {
+    val sheetState = rememberModalBottomSheetState()
+    val scope = rememberCoroutineScope()
+    var review by remember { mutableStateOf("") }
+    var rate by remember { mutableStateOf("") }
+    val context = LocalContext.current
+
+    ModalBottomSheet(
+        onDismissRequest = {
+            onDismiss()
+        },
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+        modifier = modifier
+            .padding(horizontal = 4.dp)
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier
+                .padding(horizontal = 8.dp)
+        ) {
+            OutlinedTextField(
+                value = review,
+                onValueChange = { review = it },
+                label = { Text(stringResource(R.string.write_a_review)) },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text
+                ),
+                textStyle = TextStyle(
+                    fontSize = 16.sp
+                ),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = rate,
+                onValueChange = { newText ->
+                    if (newText.isEmpty()) {
+                        rate = newText
+                    } else if (newText.count { it == '.' } <= 1) {
+                        val value = newText.toDoubleOrNull()
+                        if (value != null) {
+                            if (value <= 5.0) {
+                                rate = newText
+                            }
+                        } else {
+                            if (newText.endsWith(".") && newText.count { it == '.' } == 1) {
+                                rate = newText
+                            }
+                        }
+                    }
+                },
+                label = { Text(stringResource(R.string.rate_the_game)) },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number
+                ),
+                textStyle = TextStyle(
+                    fontSize = 16.sp
+                ),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+            )
+
+            Button(
+                onClick = {
+                    if (rate.isNotBlank() && review.isNotBlank()){
+                        addRate(context = context, gameId = gameId, userRate = rate, userReview = review)
+                        onDismiss()
+                    } else {
+                        Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = White
+                ),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier
+                    .padding(bottom = 12.dp)
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.submit_review),
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
+
+    }
+
+}
+
 
 //logic
-fun addRate(auth: FirebaseAuth, context: Context, userRate: Double) {
-    val userId = auth.currentUser?.uid
-    val user = User(id = userId, rate = userRate)
+fun addRate(
+    auth: FirebaseAuth = Firebase.auth,
+    gameId: Int,
+    context: Context,
+    userRate: String,
+    userReview: String
+) {
+    val userId = auth.currentUser?.uid ?: run {
+        Toast.makeText(context, "Not logged in", Toast.LENGTH_SHORT).show()
+        return
+    }
 
-    Firebase
-        .firestore
-        .collection("users")
-        .document(userId!!)
-        .set(user)
-        .addOnSuccessListener {
-            Toast.makeText(context, "Rate Added", Toast.LENGTH_SHORT).show()
-        }
-        .addOnFailureListener {
-            Toast.makeText(context, it.message, Toast.LENGTH_SHORT).show()
-        }
+    val db = Firebase.firestore
+    val usersCollection = db
+        .collection("Users")
+        .document(userId)
 
+    usersCollection.get()
+        .addOnSuccessListener { documents ->
+            val username = documents.getString("username") ?: ""
+            val review = Review(
+                reviewerId = userId,
+                reviewerName = username,
+                rating = userRate,
+                review = userReview
+            )
+            val reviewsCollection = db.collection("Reviews").document(gameId.toString())
+                .collection("game_reviews")
+                .document(userId)
+
+            reviewsCollection.set(review)
+                .addOnSuccessListener {
+                    Toast.makeText(context, "Rate Added", Toast.LENGTH_SHORT).show()
+                }.addOnFailureListener { e ->
+                    Toast.makeText(
+                        context,
+                        "Failed to submit review: ${e.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+        }.addOnFailureListener {
+            Toast.makeText(
+                context,
+                "Failed to fetch user profile: ${it.message}",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
 }
