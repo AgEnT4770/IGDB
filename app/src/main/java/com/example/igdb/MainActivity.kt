@@ -32,13 +32,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Explore
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -87,6 +87,11 @@ import com.example.igdb.ui.theme.White
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
+import com.valentinilk.shimmer.shimmer
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -103,9 +108,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
+    val gameViewModel: GameViewModel = viewModel()
     NavHost(navController = navController, startDestination = "main") {
         composable("main") {
-            MainScreen(navController = navController)
+            MainScreen(navController = navController, gameViewModel = gameViewModel)
         }
         composable(
             route = "gameDetails/{gameId}",
@@ -114,12 +120,13 @@ fun AppNavigation() {
             val gameId = backStackEntry.arguments?.getInt("gameId")
             if (gameId != null) {
                 GamePage(
-                    gameId = gameId, viewModel = viewModel(), onGameClicked = { gameId ->
-                        navController.navigate("gameDetails/$gameId")
+                    gameId = gameId, 
+                    viewModel = gameViewModel, 
+                    onGameClicked = { clickedGameId ->
+                        navController.navigate("gameDetails/$clickedGameId")
                     },
-                    onBackClicked = {
-                        navController.popBackStack()
-                    })
+                    onBackClicked = { navController.popBackStack() }
+                )
             }
         }
     }
@@ -156,20 +163,17 @@ internal val genres = listOf(
 private fun LineIndicator(
     pagerState: PagerState,
     modifier: Modifier = Modifier,
-    activeColor: Color = MaterialTheme.colorScheme.primary,
-    inactiveColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
 ) {
     val totalWidth = 160.dp
     if (pagerState.pageCount == 0) return
     val thumbWidth = totalWidth / pagerState.pageCount
-    val indicatorOffset =
-        (pagerState.currentPage + pagerState.currentPageOffsetFraction) * thumbWidth
+    val indicatorOffset = (pagerState.currentPage + pagerState.currentPageOffsetFraction) * thumbWidth
 
     Box(
         modifier = modifier
             .width(totalWidth)
             .height(4.dp)
-            .background(inactiveColor, RoundedCornerShape(2.dp))
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f), RoundedCornerShape(2.dp))
             .clip(RoundedCornerShape(2.dp))
     ) {
         Box(
@@ -177,23 +181,20 @@ private fun LineIndicator(
                 .width(thumbWidth)
                 .height(4.dp)
                 .offset(x = indicatorOffset)
-                .background(activeColor)
+                .background(MaterialTheme.colorScheme.primary)
         )
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun MainScreen(
-    navController: NavController,
-    gameViewModel: GameViewModel = viewModel()
-) { // Hoisted ViewModel
+fun MainScreen(navController: NavController, gameViewModel: GameViewModel) { // Hoisted ViewModel
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(rememberTopAppBarState())
-    val navItems = listOf("Home", "Search", "Discover", "Profile")
+    val navItems = listOf("Home", "Discover", "Favourites", "Profile")
     val navIcons = listOf(
         Icons.Filled.Home,
-        Icons.Filled.Search,
         Icons.Filled.Explore,
+        Icons.Filled.Favorite,
         Icons.Filled.Person
     )
     val pagerState = rememberPagerState(pageCount = { navItems.size })
@@ -235,10 +236,7 @@ fun MainScreen(
 
                     scrollBehavior = scrollBehavior,
                 )
-                HorizontalDivider(
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
-                    thickness = 1.dp
-                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f), thickness = 1.dp)
             }
         },
         bottomBar = {
@@ -249,13 +247,7 @@ fun MainScreen(
                 navItems.forEachIndexed { index, item ->
                     val isSelected = pagerState.currentPage == index
                     NavigationBarItem(
-                        icon = {
-                            Icon(
-                                navIcons[index],
-                                contentDescription = item,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        },
+                        icon = { Icon(navIcons[index], contentDescription = item, modifier = Modifier.size(28.dp)) },
                         label = { Text(item) },
                         selected = isSelected,
                         alwaysShowLabel = true,
@@ -295,7 +287,7 @@ fun MainScreen(
                         if (genre != null) {
                             gameViewModel.setInitialGenreForDiscover(genre)
                             coroutineScope.launch {
-                                pagerState.animateScrollToPage(2) // Switch to Discover page
+                                pagerState.animateScrollToPage(1) // Switch to Discover page
                             }
                         }
                     },
@@ -303,30 +295,27 @@ fun MainScreen(
                         navController.navigate("gameDetails/$gameId")
                     }
                 )
-
-                1 -> SearchPage(
+                1 -> DiscoverPage(
                     modifier = Modifier,
                     gameViewModel = gameViewModel,
                     onGameClicked = {
                         navController.navigate("gameDetails/$it")
                     }
                 )
-
-                2 -> DiscoverPage(
+                2 -> FavouritesPage(
                     modifier = Modifier,
                     gameViewModel = gameViewModel,
                     onGameClicked = {
                         navController.navigate("gameDetails/$it")
                     }
                 )
-
                 3 -> ProfilePage(modifier = Modifier)
             }
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, androidx.compose.material.ExperimentalMaterialApi::class)
 @Composable
 fun ScrollContent(
     gameViewModel: GameViewModel,
@@ -334,126 +323,136 @@ fun ScrollContent(
     onShowMoreClicked: (String) -> Unit,
     onGameClicked: (Int) -> Unit
 ) {
+    val isLoading by gameViewModel.isLoading
+    val gamesByCategory = gameViewModel.games.value
+    val pullRefreshState = rememberPullRefreshState(refreshing = isLoading, onRefresh = { gameViewModel.fetchGames() })
+
     LaunchedEffect(Unit) {
-        gameViewModel.fetchGames()
+        if (gamesByCategory.isEmpty()) {
+            gameViewModel.fetchGames()
+        }
     }
 
-    val gamesByCategory = gameViewModel.games.value
-
-    LazyColumn(
-        modifier = Modifier
-    ) {
-        item {
-            val trendingGames = gamesByCategory["Trending"] ?: emptyList()
-            if (trendingGames.isNotEmpty()) {
-                val pagerState = rememberPagerState(pageCount = { trendingGames.size })
-
-                LaunchedEffect(pagerState) {
-                    while (true) {
-                        delay(3000) // Adjust the delay as needed
-                        if (pagerState.pageCount > 0) {
-                            pagerState.animateScrollToPage((pagerState.currentPage + 1) % pagerState.pageCount)
-                        }
-                    }
-                }
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    HorizontalPager(
-                        state = pagerState,
-                        contentPadding = PaddingValues(horizontal = 40.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(200.dp)
-                    ) { page ->
-                        val game = trendingGames[page]
-                        val pageOffset =
-                            ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
-
-                        TrendingGameCard(
-                            game = game,
-                            onGameClicked = onGameClicked,
-                            modifier = Modifier.graphicsLayer {
-                                val scale = lerp(1f, 0.85f, pageOffset.coerceIn(0f, 1f))
-                                scaleX = scale
-                                scaleY = scale
-
-                                alpha = lerp(1f, 0.5f, pageOffset.coerceIn(0f, 1f))
-                            }
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    val currentGame = trendingGames.getOrNull(pagerState.currentPage)
-                    if (currentGame != null) {
-                        Text(
-                            text = currentGame.name,
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = currentGame.genres?.joinToString { it.name } ?: "",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        LineIndicator(pagerState = pagerState)
-                    }
-                }
-
-            }
-        }
-
-        gamesByCategory.forEach { (category, games) ->
-            if (category != "Trending") {
+    Box(Modifier.pullRefresh(pullRefreshState)) {
+        if (isLoading && gamesByCategory.isEmpty()) {
+            ShimmerLoading()
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize()
+            ) {
                 item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = category,
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                        Text(
-                            text = "Show more",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.clickable { onShowMoreClicked(category) }
-                        )
-                    }
-                }
-                item {
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        modifier = Modifier.pointerInput(Unit) {
-                            detectTapGestures(
-                                onPress = {
-                                    onUserInteractingWithLazyRow(true)
-                                    try {
-                                        awaitRelease()
-                                    } finally {
-                                        onUserInteractingWithLazyRow(false)
-                                    }
+                    val trendingGames = gamesByCategory["Trending"] ?: emptyList()
+                    if (trendingGames.isNotEmpty()) {
+                        val pagerState = rememberPagerState(pageCount = { trendingGames.size })
+
+                        LaunchedEffect(pagerState) {
+                            while (true) {
+                                delay(3000) // Adjust the delay as needed
+                                if (pagerState.pageCount > 0) {
+                                    pagerState.animateScrollToPage((pagerState.currentPage + 1) % pagerState.pageCount)
                                 }
-                            )
+                            }
                         }
-                    ) {
-                        items(games) { game ->
-                            GameCard(game, onGameClicked = onGameClicked)
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            HorizontalPager(
+                                state = pagerState,
+                                contentPadding = PaddingValues(horizontal = 40.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp)
+                            ) { page ->
+                                val game = trendingGames[page]
+                                val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
+
+                                TrendingGameCard(
+                                    game = game,
+                                    onGameClicked = onGameClicked,
+                                    modifier = Modifier.graphicsLayer {
+                                        val scale = lerp(1f, 0.85f, pageOffset.coerceIn(0f, 1f))
+                                        scaleX = scale
+                                        scaleY = scale
+
+                                        alpha = lerp(1f, 0.5f, pageOffset.coerceIn(0f, 1f))
+                                    }
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            val currentGame = trendingGames.getOrNull(pagerState.currentPage)
+                            if (currentGame != null) {
+                                Text(
+                                    text = currentGame.name,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = currentGame.genres?.joinToString { it.name } ?: "",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                LineIndicator(pagerState = pagerState)
+                            }
+                        }
+
+                    }
+                }
+
+                gamesByCategory.forEach { (category, games) ->
+                    if (category != "Trending") {
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = category,
+                                    style = MaterialTheme.typography.titleLarge
+                                )
+                                Text(
+                                    text = "Show more",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.clickable { onShowMoreClicked(category) }
+                                )
+                            }
+                        }
+                        item {
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                modifier = Modifier.pointerInput(Unit) {
+                                    detectTapGestures(
+                                        onPress = {
+                                            onUserInteractingWithLazyRow(true)
+                                            try {
+                                                awaitRelease()
+                                            } finally {
+                                                onUserInteractingWithLazyRow(false)
+                                            }
+                                        }
+                                    )
+                                }
+                            ) {
+                                items(games) { game ->
+                                    GameCard(game, onGameClicked = onGameClicked)
+                                }
+                            }
                         }
                     }
                 }
             }
         }
+        PullRefreshIndicator(isLoading, pullRefreshState, Modifier.align(Alignment.TopCenter))
     }
 }
 
@@ -490,7 +489,7 @@ fun TrendingGameCard(game: Game, onGameClicked: (Int) -> Unit, modifier: Modifie
                 ) {
                     game.rating?.let {
                         Text(
-                            text = String.format("%.1f", it),
+                            text = String.format(Locale.getDefault(), "%.1f", it),
                             color = White,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
@@ -498,7 +497,7 @@ fun TrendingGameCard(game: Game, onGameClicked: (Int) -> Unit, modifier: Modifie
                     }
                     Spacer(Modifier.width(4.dp))
                     Icon(
-                        imageVector = Icons.Default.Star, // Star icon
+                        imageVector = Icons.Default.Star,
                         contentDescription = null,
                         tint = Gold,
                         modifier = Modifier.size(16.dp)
@@ -511,11 +510,7 @@ fun TrendingGameCard(game: Game, onGameClicked: (Int) -> Unit, modifier: Modifie
 
 
 @Composable
-fun GameCard(
-    game: Game,
-    textColor: Color = MaterialTheme.colorScheme.onSurface,
-    onGameClicked: (Int) -> Unit
-) {
+fun GameCard(game: Game, onGameClicked: (Int) -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -544,7 +539,7 @@ fun GameCard(
                         .padding(4.dp)
                 ) {
                     Text(
-                        text = String.format("%.1f", it),
+                        text = String.format(Locale.getDefault(), "%.1f", it),
                         color = White,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
@@ -555,7 +550,7 @@ fun GameCard(
         }
         Text(
             text = game.name,
-            color = textColor,
+            color = MaterialTheme.colorScheme.onSurface,
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(top = 8.dp),
             maxLines = 1,
@@ -563,6 +558,118 @@ fun GameCard(
         )
     }
 }
+
+@Composable
+fun ShimmerLoading() {
+    LazyColumn(modifier = Modifier.padding(vertical = 8.dp)) {
+        // Trending Section Shimmer
+        item {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    modifier = Modifier
+                        .height(200.dp)
+                        .fillMaxWidth(0.9f)
+                        .clip(RoundedCornerShape(16.dp))
+                        .shimmer()
+                        .background(Color.Gray)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Box(
+                    modifier = Modifier
+                        .width(120.dp)
+                        .height(24.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .shimmer()
+                        .background(Color.Gray)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Box(
+                    modifier = Modifier
+                        .width(80.dp)
+                        .height(16.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .shimmer()
+                        .background(Color.Gray)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Box(
+                    modifier = Modifier
+                        .width(160.dp)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .shimmer()
+                        .background(Color.Gray)
+                )
+            }
+            Spacer(Modifier.height(16.dp))
+        }
+
+        // Other categories shimmer
+        repeat(2) {
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(100.dp)
+                            .height(24.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .shimmer()
+                            .background(Color.Gray)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .width(60.dp)
+                            .height(16.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .shimmer()
+                            .background(Color.Gray)
+                    )
+                }
+            }
+            item {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    items(3) { // 3 shimmer cards per category
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.width(120.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .height(160.dp)
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .shimmer()
+                                    .background(Color.Gray)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(16.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .shimmer()
+                                    .background(Color.Gray)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 @Preview(showSystemUi = true)
 @Composable

@@ -1,13 +1,18 @@
 package com.example.igdb
 
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -24,9 +29,70 @@ class GameViewModel : ViewModel() {
     private var searchJob: Job? = null
     val gameDetails = mutableStateOf<Game?>(null)
     val relatedGames = mutableStateOf<List<Game>>(emptyList())
-
-    // State to manage the genre selected from the home page
+    val favoriteGames = mutableStateOf<List<Game>>(emptyList())
     val initialDiscoverGenre = mutableStateOf<Genre?>(null)
+
+    private val firestore = FirebaseFirestore.getInstance()
+    private val auth = FirebaseAuth.getInstance()
+    private val userId = auth.currentUser?.uid
+
+    init {
+        fetchFavorites()
+    }
+
+    private fun fetchFavorites() {
+        if (userId == null) return
+        firestore.collection("users").document(userId).collection("favorites").get()
+            .addOnSuccessListener { snapshot ->
+                val games = mutableListOf<Game>()
+                for (document in snapshot.documents) {
+                    val id = (document.get("id") as? Number)?.toInt() ?: 0
+                    val name = document.getString("name") ?: ""
+                    val backgroundImage = document.getString("background_image")
+                    val rating = (document.get("rating") as? Number)?.toDouble()
+                    if (id != 0) {
+                        games.add(
+                            Game(
+                                id = id,
+                                name = name,
+                                background_image = backgroundImage,
+                                rating = rating,
+                                description = null,
+                                platforms = null,
+                                genres = null
+                            )
+                        )
+                    }
+                }
+                favoriteGames.value = games
+            }
+    }
+
+    fun isFavorite(gameId: Int): Boolean {
+        return favoriteGames.value.any { it.id == gameId }
+    }
+
+    fun toggleFavorite(game: Game, context: Context) {
+        if (userId == null) return
+        val favoriteRef = firestore.collection("users").document(userId).collection("favorites").document(game.id.toString())
+        if (isFavorite(game.id)) {
+            favoriteRef.delete().addOnSuccessListener { 
+                Toast.makeText(context, "Removed from Favourites", Toast.LENGTH_SHORT).show()
+                fetchFavorites() 
+            }
+        } else {
+            val gameData = hashMapOf(
+                "id" to game.id,
+                "name" to game.name,
+                "background_image" to game.background_image,
+                "rating" to game.rating
+            )
+            favoriteRef.set(gameData).addOnSuccessListener { 
+                Toast.makeText(context, "Added to Favourites", Toast.LENGTH_SHORT).show()
+                fetchFavorites() 
+            }
+        }
+    }
 
     fun fetchGames() {
         viewModelScope.launch {

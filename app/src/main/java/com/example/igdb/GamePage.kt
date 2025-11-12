@@ -1,5 +1,7 @@
 package com.example.igdb
 
+import android.R.attr.contentDescription
+import android.R.attr.tint
 import android.content.Context
 import android.text.Html
 import android.widget.Toast
@@ -27,6 +29,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.ArrowBackIosNew
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
@@ -77,6 +80,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.example.igdb.ui.theme.Gold
 import com.example.igdb.ui.theme.IGDBTheme
@@ -87,6 +91,7 @@ import com.google.firebase.auth.auth
 import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.google.firebase.firestore.FirebaseFirestore
 
 // loader
 @Composable
@@ -184,6 +189,7 @@ fun GameDetails(
     onBackClicked: () -> Unit
 ) {
     val backgroundColor = MaterialTheme.colorScheme.background
+    val context = LocalContext.current
     LazyColumn(
         modifier = modifier
             .background(color = backgroundColor)
@@ -222,6 +228,9 @@ fun GameDetails(
 
                 TopButtons(
                     onBackClicked = onBackClicked,
+                    game = game,
+                    viewModel = viewModel,
+                    context = context,
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .fillMaxWidth()
@@ -328,7 +337,9 @@ fun ExpandableText(
 
 // the back an add to favourites buttons
 @Composable
-fun TopButtons(modifier: Modifier = Modifier, onBackClicked: () -> Unit) {
+fun TopButtons(modifier: Modifier = Modifier, onBackClicked: () -> Unit, game: Game, viewModel: GameViewModel, context: Context) {
+    val isFavorite = viewModel.isFavorite(game.id)
+
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         modifier = modifier.padding(horizontal = 8.dp, vertical = 12.dp),
@@ -351,7 +362,7 @@ fun TopButtons(modifier: Modifier = Modifier, onBackClicked: () -> Unit) {
         }
 
         Button(
-            onClick = { /*TODO*/ },
+            onClick = {viewModel.toggleFavorite(game, context)},
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -360,9 +371,9 @@ fun TopButtons(modifier: Modifier = Modifier, onBackClicked: () -> Unit) {
             modifier = Modifier.size(48.dp)
         ) {
             Icon(
-                imageVector = Icons.Default.FavoriteBorder,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface,
+                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Default.FavoriteBorder ,
+                contentDescription = null ,
+                tint = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
             )
 
         }
