@@ -340,6 +340,7 @@ fun TopButtons(
     viewModel: GameViewModel,
     context: Context
 ) {
+
     val isFavorite = viewModel.isFavorite(game.id)
 
     Row(
@@ -587,10 +588,11 @@ fun RelatedGames(
     val relatedGames by viewModel.relatedGames
     val filterRelatedGames = relatedGames.filter { it.id != game.id }
 
-
-    LaunchedEffect(game.genres) {
-        game.genres?.firstOrNull()?.slug?.let {
-            viewModel.fetchRelatedGames(it)
+    if (!LocalInspectionMode.current) {
+        LaunchedEffect(game.genres) {
+            game.genres?.firstOrNull()?.slug?.let {
+                viewModel.fetchRelatedGames(it)
+            }
         }
     }
 
