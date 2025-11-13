@@ -401,6 +401,7 @@ fun SignupCredentials(authManager: Authentication? = null) {
                 isLoading = true
                 val intent = Intent(context, LoginActivity::class.java)
                 context.startActivity(intent)
+                if (context is SignupActivity) context.finish()
             },
             modifier = Modifier
                 .width(108.dp)

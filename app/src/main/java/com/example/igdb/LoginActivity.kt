@@ -280,6 +280,7 @@ fun LoginCredentials(authManager: Authentication?) {
                 isLoading = true
                 val intent = Intent(context, SignupActivity::class.java)
                 context.startActivity(intent)
+                if (context is LoginActivity) context.finish()
             },
             modifier = Modifier
                 .width(108.dp)
