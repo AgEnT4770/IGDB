@@ -1,5 +1,6 @@
 package com.example.igdb
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -8,7 +9,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,9 +36,12 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.Card
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -53,17 +56,13 @@ import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -84,19 +83,24 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.igdb.ui.theme.Gold
 import com.example.igdb.ui.theme.IGDBTheme
 import com.example.igdb.ui.theme.White
+import com.valentinilk.shimmer.shimmer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.math.absoluteValue
-import androidx.compose.material.pullrefresh.PullRefreshIndicator
-import androidx.compose.material.pullrefresh.pullRefresh
-import androidx.compose.material.pullrefresh.rememberPullRefreshState
-import com.valentinilk.shimmer.shimmer
 import java.util.Locale
+import kotlin.math.absoluteValue
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        CloudinaryUploader.init(
+            context = this,
+            cloudName = "dbj2gefic",
+            apiKey = "541522978464643",
+            apiSecret = "5tuReWBqAjDfblk06BorLIsZenI"
+        )
+        
         setContent {
             IGDBTheme {
                 AppNavigation()
@@ -106,9 +110,8 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(gameViewModel: GameViewModel = viewModel()) {
     val navController = rememberNavController()
-    val gameViewModel: GameViewModel = viewModel()
     NavHost(navController = navController, startDestination = "main") {
         composable("main") {
             MainScreen(navController = navController, gameViewModel = gameViewModel)
@@ -120,8 +123,8 @@ fun AppNavigation() {
             val gameId = backStackEntry.arguments?.getInt("gameId")
             if (gameId != null) {
                 GamePage(
-                    gameId = gameId, 
-                    viewModel = gameViewModel, 
+                    gameId = gameId,
+                    viewModel = gameViewModel,
                     onGameClicked = { clickedGameId ->
                         navController.navigate("gameDetails/$clickedGameId")
                     },
@@ -167,13 +170,17 @@ private fun LineIndicator(
     val totalWidth = 160.dp
     if (pagerState.pageCount == 0) return
     val thumbWidth = totalWidth / pagerState.pageCount
-    val indicatorOffset = (pagerState.currentPage + pagerState.currentPageOffsetFraction) * thumbWidth
+    val indicatorOffset =
+        (pagerState.currentPage + pagerState.currentPageOffsetFraction) * thumbWidth
 
     Box(
         modifier = modifier
             .width(totalWidth)
             .height(4.dp)
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f), RoundedCornerShape(2.dp))
+            .background(
+                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                RoundedCornerShape(2.dp)
+            )
             .clip(RoundedCornerShape(2.dp))
     ) {
         Box(
@@ -199,12 +206,6 @@ fun MainScreen(navController: NavController, gameViewModel: GameViewModel) { // 
     )
     val pagerState = rememberPagerState(pageCount = { navItems.size })
     val coroutineScope = rememberCoroutineScope()
-    var userScrollEnabled by remember { mutableStateOf(true) }
-
-    LaunchedEffect(pagerState.currentPage) {
-        userScrollEnabled = true
-    }
-
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -236,7 +237,10 @@ fun MainScreen(navController: NavController, gameViewModel: GameViewModel) { // 
 
                     scrollBehavior = scrollBehavior,
                 )
-                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f), thickness = 1.dp)
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                    thickness = 1.dp
+                )
             }
         },
         bottomBar = {
@@ -273,15 +277,11 @@ fun MainScreen(navController: NavController, gameViewModel: GameViewModel) { // 
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(top = 8.dp),
-            userScrollEnabled = userScrollEnabled
+                .padding(top = 8.dp)
         ) { page ->
             when (page) {
                 0 -> ScrollContent(
                     gameViewModel = gameViewModel,
-                    onUserInteractingWithLazyRow = { isInteracting ->
-                        userScrollEnabled = !isInteracting
-                    },
                     onShowMoreClicked = { categoryName ->
                         val genre = genres.find { it.name == categoryName }
                         if (genre != null) {
@@ -309,7 +309,7 @@ fun MainScreen(navController: NavController, gameViewModel: GameViewModel) { // 
                         navController.navigate("gameDetails/$it")
                     }
                 )
-                3 -> ProfilePage(modifier = Modifier)
+                3 -> PersonalPage(modifier = Modifier)
             }
         }
     }
@@ -319,13 +319,13 @@ fun MainScreen(navController: NavController, gameViewModel: GameViewModel) { // 
 @Composable
 fun ScrollContent(
     gameViewModel: GameViewModel,
-    onUserInteractingWithLazyRow: (Boolean) -> Unit,
     onShowMoreClicked: (String) -> Unit,
     onGameClicked: (Int) -> Unit
 ) {
     val isLoading by gameViewModel.isLoading
     val gamesByCategory = gameViewModel.games.value
-    val pullRefreshState = rememberPullRefreshState(refreshing = isLoading, onRefresh = { gameViewModel.fetchGames() })
+    val pullRefreshState =
+        rememberPullRefreshState(refreshing = isLoading, onRefresh = { gameViewModel.fetchGames() })
 
     LaunchedEffect(Unit) {
         if (gamesByCategory.isEmpty()) {
@@ -337,6 +337,7 @@ fun ScrollContent(
         if (isLoading && gamesByCategory.isEmpty()) {
             ShimmerLoading()
         } else {
+            val categories = gamesByCategory.filter { it.key != "Trending" }.toList()
             LazyColumn(
                 modifier = Modifier.fillMaxSize()
             ) {
@@ -365,7 +366,8 @@ fun ScrollContent(
                                     .height(200.dp)
                             ) { page ->
                                 val game = trendingGames[page]
-                                val pageOffset = ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
+                                val pageOffset =
+                                    ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction).absoluteValue
 
                                 TrendingGameCard(
                                     game = game,
@@ -404,48 +406,35 @@ fun ScrollContent(
                     }
                 }
 
-                gamesByCategory.forEach { (category, games) ->
-                    if (category != "Trending") {
-                        item {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    text = category,
-                                    style = MaterialTheme.typography.titleLarge
-                                )
-                                Text(
-                                    text = "Show more",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.clickable { onShowMoreClicked(category) }
-                                )
-                            }
+                items(
+                    items = categories,
+                    key = { (category, _) -> category }
+                ) { (category, games) ->
+                    Column {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = category,
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                            Text(
+                                text = "Show more",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.clickable { onShowMoreClicked(category) }
+                            )
                         }
-                        item {
-                            LazyRow(
-                                contentPadding = PaddingValues(horizontal = 16.dp),
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                modifier = Modifier.pointerInput(Unit) {
-                                    detectTapGestures(
-                                        onPress = {
-                                            onUserInteractingWithLazyRow(true)
-                                            try {
-                                                awaitRelease()
-                                            } finally {
-                                                onUserInteractingWithLazyRow(false)
-                                            }
-                                        }
-                                    )
-                                }
-                            ) {
-                                items(games) { game ->
-                                    GameCard(game, onGameClicked = onGameClicked)
-                                }
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            items(items = games, key = { it.id }) { game ->
+                                GameCard(game, onGameClicked = onGameClicked)
                             }
                         }
                     }
@@ -608,8 +597,8 @@ fun ShimmerLoading() {
         }
 
         // Other categories shimmer
-        repeat(2) {
-            item {
+        items(2) {
+            Column {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -634,8 +623,6 @@ fun ShimmerLoading() {
                             .background(Color.Gray)
                     )
                 }
-            }
-            item {
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -671,10 +658,11 @@ fun ShimmerLoading() {
 }
 
 
+@SuppressLint("ViewModelConstructorInComposable")
 @Preview(showSystemUi = true)
 @Composable
 fun GreetingPreview() {
     IGDBTheme {
-        AppNavigation()
+        AppNavigation(gameViewModel = PreviewGameViewModel())
     }
 }

@@ -69,4 +69,6 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:34.5.0"))
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
+    // Cloudinary for free image storage (replaces Firebase Storage)
+    implementation("com.cloudinary:cloudinary-android:2.3.1")
 }
