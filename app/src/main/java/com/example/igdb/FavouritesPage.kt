@@ -64,7 +64,7 @@ fun FavouritesPage(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(favoriteGames) { game ->
-                        GameCard(game = game, onGameClicked = onGameClicked)
+                        com.example.igdb.GameCard(game = game, onGameClicked = onGameClicked)
                     }
                 }
             }

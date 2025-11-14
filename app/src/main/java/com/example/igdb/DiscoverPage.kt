@@ -152,7 +152,7 @@ fun GenreChips(
 }
 
 @Composable
-fun GameGrid(games: List<Game>,onGameClicked: (Int) -> Unit) {
+fun GameGrid(games: List<Game>, onGameClicked: (Int) -> Unit) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -160,7 +160,7 @@ fun GameGrid(games: List<Game>,onGameClicked: (Int) -> Unit) {
         modifier = Modifier.fillMaxSize()
     ) {
         items(games) { game ->
-            GameCard(game,onGameClicked = onGameClicked)
+            com.example.igdb.GameCard(game, onGameClicked = onGameClicked)
         }
     }
 }

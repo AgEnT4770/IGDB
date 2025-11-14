@@ -61,6 +61,31 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
                 Log.e(TAG, "Connection failed", exception)
                 "Unable to connect. Please check your internet connection."
             }
+            is retrofit2.HttpException -> {
+                val code = exception.code()
+                val message = when (code) {
+                    502 -> "Server error. Please try again later."
+                    503 -> "Service unavailable. Please try again later."
+                    504 -> "Request timeout. Please try again."
+                    in 500..599 -> "Server error. Please try again later."
+                    else -> "Network error. Please try again."
+                }
+                Log.e(TAG, "HTTP error $code: $message", exception)
+                message
+            }
+            is kotlinx.coroutines.CancellationException -> {
+                Log.w(TAG, "Request cancelled", exception)
+                "Request cancelled"
+            }
+            is com.google.firebase.firestore.FirebaseFirestoreException -> {
+                if (exception.message?.contains("offline") == true || exception.message?.contains("UNAVAILABLE") == true) {
+                    Log.e(TAG, "Firestore offline", exception)
+                    "You're offline. Please check your internet connection."
+                } else {
+                    Log.e(TAG, "Firestore error: $defaultMessage", exception)
+                    exception.message ?: defaultMessage
+                }
+            }
             else -> {
                 Log.e(TAG, defaultMessage, exception)
                 exception?.message ?: defaultMessage
@@ -161,7 +186,14 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
                 }
                 games.value = deferredGames.awaitAll().toMap()
             } catch (e: Exception) {
-                e.printStackTrace()
+                val errorMessage = handleError(e, "Failed to load games")
+                Log.e(TAG, errorMessage, e)
+                if (e is UnknownHostException || e is ConnectException || e is SocketTimeoutException) {
+                    Log.w(TAG, "Network error - you may be offline")
+                }
+                if (e is kotlinx.coroutines.CancellationException) {
+                    Log.d(TAG, "Request was cancelled, this is normal")
+                }
             } finally {
                 isLoading.value = false
             }
@@ -185,7 +217,11 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
                 currentMap[genreName] = response.results
                 games.value = currentMap
             } catch (e: Exception) {
-                e.printStackTrace()
+                val errorMessage = handleError(e, "Failed to load games")
+                Log.e(TAG, errorMessage, e)
+                if (e is UnknownHostException || e is ConnectException || e is SocketTimeoutException) {
+                    Log.w(TAG, "Network error - you may be offline")
+                }
             } finally {
                 isLoading.value = false
             }
@@ -209,7 +245,12 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
                     searchResults.value = emptyList()
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                val errorMessage = handleError(e, "Failed to search games")
+                Log.e(TAG, errorMessage, e)
+                if (e is UnknownHostException || e is ConnectException || e is SocketTimeoutException) {
+                    Log.w(TAG, "Network error - you may be offline")
+                }
+                searchResults.value = emptyList()
             } finally {
                 isLoading.value = false
             }
@@ -234,13 +275,17 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
                     id = gameId,
                     apiKey = "6e5ea525d41242d3b765b9e83eba84e7",
                 )
-                gameDetails.value = response
-            } catch (e: Exception) {
-                gameDetailsError.value = e.message
-                e.printStackTrace()
-            } finally {
-                isGameDetailsLoading.value = false
-            }
+                       gameDetails.value = response
+                   } catch (e: Exception) {
+                       val errorMessage = handleError(e, "Failed to load game details")
+                       gameDetailsError.value = errorMessage
+                       Log.e(TAG, errorMessage, e)
+                       if (e is UnknownHostException || e is ConnectException || e is SocketTimeoutException) {
+                           Log.w(TAG, "Network error - you may be offline")
+                       }
+                   } finally {
+                       isGameDetailsLoading.value = false
+                   }
         }
 
     }
@@ -253,10 +298,15 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
                     genres = genreSlug,
                     pageSize = 10
                 )
-                relatedGames.value = response.results
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+                       relatedGames.value = response.results
+                   } catch (e: Exception) {
+                       val errorMessage = handleError(e, "Failed to load related games")
+                       Log.e(TAG, errorMessage, e)
+                       if (e is UnknownHostException || e is ConnectException || e is SocketTimeoutException) {
+                           Log.w(TAG, "Network error - you may be offline")
+                       }
+                       relatedGames.value = emptyList()
+                   }
         }
     }
 
@@ -278,7 +328,7 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
                     }
                     
                     reviewsList.forEachIndexed { index, review ->
-                        if (review.profilePictureUrl.isNotEmpty() || review.reviewerId.isEmpty()) {
+                        if (review.reviewerId.isEmpty()) {
                             reviewsWithPictures[index] = review
                             completedFetches++
                             
@@ -289,8 +339,12 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
                         } else {
                             firestore?.collection("Users")?.document(review.reviewerId)?.get()
                                 ?.addOnSuccessListener { userDoc ->
-                                    val profilePictureUrl = userDoc.getString("profilePictureUrl") ?: ""
-                                    val updatedReview = review.copy(profilePictureUrl = profilePictureUrl)
+                                    val currentUsername = userDoc.getString("username") ?: review.reviewerName
+                                    val profilePictureUrl = userDoc.getString("profilePictureUrl") ?: review.profilePictureUrl
+                                    val updatedReview = review.copy(
+                                        reviewerName = currentUsername,
+                                        profilePictureUrl = profilePictureUrl
+                                    )
                                     reviewsWithPictures[index] = updatedReview
                                     completedFetches++
                                     
