@@ -1,4 +1,4 @@
-package com.example.igdb
+package com.example.igdb.ui.screens
 
 import android.content.Intent
 import android.net.Uri
@@ -77,7 +77,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
+import com.example.igdb.R
+import com.example.igdb.auth.Authentication
+import com.example.igdb.data.CloudinaryUploader
+import com.example.igdb.data.User
 import com.example.igdb.ui.theme.IGDBTheme
+import com.example.igdb.viewmodel.PreviewGameViewModel
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
@@ -699,4 +704,3 @@ fun handleUploadError(exception: Exception?, defaultMessage: String): String {
         }
     }
 }
-

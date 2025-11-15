@@ -1,4 +1,4 @@
-package com.example.igdb
+package com.example.igdb.ui.activities
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -45,7 +45,6 @@ import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -92,9 +91,19 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import coil.compose.rememberAsyncImagePainter
+import com.example.igdb.R
+import com.example.igdb.data.CloudinaryUploader
+import com.example.igdb.data.Game
+import com.example.igdb.data.Genre
+import com.example.igdb.ui.screens.DiscoverPage
+import com.example.igdb.ui.screens.FavouritesPage
+import com.example.igdb.ui.screens.GamePage
+import com.example.igdb.ui.screens.PersonalPage
 import com.example.igdb.ui.theme.Gold
 import com.example.igdb.ui.theme.IGDBTheme
 import com.example.igdb.ui.theme.White
+import com.example.igdb.viewmodel.GameViewModel
+import com.example.igdb.viewmodel.PreviewGameViewModel
 import com.valentinilk.shimmer.shimmer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -294,8 +303,6 @@ fun OfflineBanner(modifier: Modifier = Modifier) {
         }
     }
 }
-
-data class Genre(val name: String, val slug: String)
 
 val genres = listOf(
     Genre("Trending", "-popularity"),

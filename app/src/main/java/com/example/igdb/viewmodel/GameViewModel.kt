@@ -1,4 +1,4 @@
-package com.example.igdb
+package com.example.igdb.viewmodel
 
 import android.content.Context
 import android.util.Log
@@ -6,6 +6,11 @@ import android.widget.Toast
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.igdb.data.Game
+import com.example.igdb.data.GameResponse
+import com.example.igdb.data.RawgApiService
+import com.example.igdb.data.Review
+import com.example.igdb.data.Genre
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Job
@@ -453,16 +458,16 @@ class PreviewGameViewModel : GameViewModel(inPreview = true) {
                 background_image = "https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg",
                 description = "<p>The Witcher 3: Wild Hunt is a 2015 action role-playing game developed and published by Polish developer CD Projekt Red and is based on The Witcher series of fantasy novels by Andrzej Sapkowski. The game is the sequel to the 2011 game The Witcher 2: Assassins of Kings, and the third main installment in The Witcher video game series, played in an open world with a third-person perspective.</p>",
                 platforms = listOf(
-                    PlatformEntry(
-                        platform = Platform(1, "PC", "pc"),
-                        requirements = Requirements(
+                    com.example.igdb.data.PlatformEntry(
+                        platform = com.example.igdb.data.Platform(1, "PC", "pc"),
+                        requirements = com.example.igdb.data.Requirements(
                             minimum = "Intel CPU Core i5-2500K 3.3GHz / AMD CPU Phenom II X4 940",
                             recommended = "Intel CPU Core i7 3770 3.4 GHz / AMD CPU AMD FX-8350 4 GHz"
                         )
                     )
                 ),
                 rating = 3.6,
-                genres = listOf(GameGenre("Action", "Action"), GameGenre("RPG", "RPG"))
+                genres = listOf(com.example.igdb.data.GameGenre("Action", "Action"), com.example.igdb.data.GameGenre("RPG", "RPG"))
             )
             isGameDetailsLoading.value = false
         }

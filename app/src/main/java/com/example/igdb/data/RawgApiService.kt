@@ -1,5 +1,7 @@
-package com.example.igdb
+package com.example.igdb.data
 
+import com.example.igdb.data.Game
+import com.example.igdb.data.GameResponse
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query

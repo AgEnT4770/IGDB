@@ -1,10 +1,14 @@
-package com.example.igdb
+package com.example.igdb.auth
 
 import android.content.Context
 import android.content.Intent
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import com.example.igdb.data.User
+import com.example.igdb.ui.activities.LoginActivity
+import com.example.igdb.ui.activities.MainActivity
+import com.example.igdb.ui.activities.SignupActivity
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth

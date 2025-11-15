@@ -1,4 +1,4 @@
-package com.example.igdb
+package com.example.igdb.data
 
 data class Review(
     val reviewerId: String = "",

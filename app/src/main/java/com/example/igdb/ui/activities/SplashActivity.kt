@@ -1,4 +1,4 @@
-package com.example.igdb
+package com.example.igdb.ui.activities
 
 import android.content.Intent
 import android.os.Bundle
@@ -32,6 +32,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.igdb.R
 import com.example.igdb.ui.theme.IGDBTheme
 import kotlinx.coroutines.delay
 

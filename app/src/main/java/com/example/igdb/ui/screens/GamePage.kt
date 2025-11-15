@@ -1,4 +1,4 @@
-package com.example.igdb
+package com.example.igdb.ui.screens
 
 import android.annotation.SuppressLint
 import android.text.Html
@@ -79,9 +79,19 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
+import com.example.igdb.R
+import com.example.igdb.data.Game
+import com.example.igdb.data.GameGenre
+import com.example.igdb.data.Platform
+import com.example.igdb.data.PlatformEntry
+import com.example.igdb.data.Requirements
+import com.example.igdb.data.Review
+import com.example.igdb.ui.activities.GameCard
 import com.example.igdb.ui.theme.Gold
 import com.example.igdb.ui.theme.IGDBTheme
 import com.example.igdb.ui.theme.White
+import com.example.igdb.viewmodel.GameViewModel
+import com.example.igdb.viewmodel.PreviewGameViewModel
 import com.valentinilk.shimmer.shimmer
 
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.material.ExperimentalMaterialApi::class)
@@ -560,7 +570,7 @@ fun RelatedGames(
                     .padding(bottom = 12.dp)
             ) {
                 items(filterRelatedGames) { relatedGame ->
-                    com.example.igdb.GameCard(
+                    GameCard(
                         game = relatedGame,
                         onGameClicked = onGameClicked
                     )
