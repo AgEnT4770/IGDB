@@ -676,7 +676,7 @@ fun GameCard(game: Game, onGameClicked: (Int) -> Unit) {
             Image(
                 painter = rememberAsyncImagePainter(
                     model = game.background_image,
-                    placeholder = painterResource(id = R.drawable.app_icn) // Placeholder image
+                    placeholder = painterResource(id = R.drawable.app_icn)
                 ),
                 contentDescription = game.name,
                 modifier = Modifier
@@ -830,5 +830,20 @@ fun ShimmerLoading() {
 fun GreetingPreview() {
     IGDBTheme {
         AppNavigation(gameViewModel = PreviewGameViewModel())
+    }
+}
+
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "ViewModelConstructorInComposable")
+@Preview(showSystemUi = true)
+@Composable
+fun ScrollContentPreview() {
+    IGDBTheme {
+        Scaffold {
+            ScrollContent(
+                gameViewModel = PreviewGameViewModel(),
+                onShowMoreClicked = {},
+                onGameClicked = {}
+            )
+        }
     }
 }

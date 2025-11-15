@@ -7,10 +7,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.igdb.data.Game
+import com.example.igdb.data.GameGenre
 import com.example.igdb.data.GameResponse
-import com.example.igdb.data.RawgApiService
-import com.example.igdb.data.Review
 import com.example.igdb.data.Genre
+import com.example.igdb.data.Platform
+import com.example.igdb.data.PlatformEntry
+import com.example.igdb.data.RawgApiService
+import com.example.igdb.data.Requirements
+import com.example.igdb.data.Review
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Job
@@ -446,6 +450,18 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
 }
 
 class PreviewGameViewModel : GameViewModel(inPreview = true) {
+    init {
+        val previewGames = listOf(
+            Game(id = 1, name = "The Witcher 3: Wild Hunt", background_image = "https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg", rating = 4.7, genres = listOf(GameGenre("Action"), GameGenre("RPG"))),
+            Game(id = 2, name = "Red Dead Redemption 2", background_image = "https://media.rawg.io/media/games/511/5118aff5091cb3efec399c808f8c598f.jpg", rating = 4.8, genres = listOf(GameGenre("Action"), GameGenre("Adventure"))),
+            Game(id = 3, name = "Grand Theft Auto V", background_image = "https://media.rawg.io/media/games/456/456dea5e1c7e3cd07060c14e96612001.jpg", rating = 4.5, genres = listOf(GameGenre("Action"), GameGenre("Adventure")))
+        )
+        games.value = mapOf(
+            "Trending" to previewGames,
+            "Action" to previewGames,
+            "Adventure" to previewGames
+        )
+    }
     override fun isFavorite(gameId: Int): Boolean = false
     override fun fetchGames() {}
     override fun fetchGameDetails(gameId: Int) {
@@ -458,16 +474,16 @@ class PreviewGameViewModel : GameViewModel(inPreview = true) {
                 background_image = "https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg",
                 description = "<p>The Witcher 3: Wild Hunt is a 2015 action role-playing game developed and published by Polish developer CD Projekt Red and is based on The Witcher series of fantasy novels by Andrzej Sapkowski. The game is the sequel to the 2011 game The Witcher 2: Assassins of Kings, and the third main installment in The Witcher video game series, played in an open world with a third-person perspective.</p>",
                 platforms = listOf(
-                    com.example.igdb.data.PlatformEntry(
-                        platform = com.example.igdb.data.Platform(1, "PC", "pc"),
-                        requirements = com.example.igdb.data.Requirements(
+                    PlatformEntry(
+                        platform = Platform(1, "PC", "pc"),
+                        requirements = Requirements(
                             minimum = "Intel CPU Core i5-2500K 3.3GHz / AMD CPU Phenom II X4 940",
                             recommended = "Intel CPU Core i7 3770 3.4 GHz / AMD CPU AMD FX-8350 4 GHz"
                         )
                     )
                 ),
                 rating = 3.6,
-                genres = listOf(com.example.igdb.data.GameGenre("Action", "Action"), com.example.igdb.data.GameGenre("RPG", "RPG"))
+                genres = listOf(GameGenre("Action", "Action"), GameGenre("RPG", "RPG"))
             )
             isGameDetailsLoading.value = false
         }
