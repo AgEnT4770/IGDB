@@ -617,7 +617,7 @@ fun TrendingGameCard(game: Game, onGameClicked: (Int) -> Unit, modifier: Modifie
             Image(
                 painter = rememberAsyncImagePainter(
                     model = game.background_image,
-                    placeholder = painterResource(id = R.drawable.gamingbook)
+                    placeholder = painterResource(id = R.drawable.app_icn)
                 ),
                 contentDescription = game.name,
                 modifier = Modifier.fillMaxSize(),
@@ -669,7 +669,7 @@ fun GameCard(game: Game, onGameClicked: (Int) -> Unit) {
             Image(
                 painter = rememberAsyncImagePainter(
                     model = game.background_image,
-                    placeholder = painterResource(id = R.drawable.gamingbook) // Placeholder image
+                    placeholder = painterResource(id = R.drawable.app_icn) // Placeholder image
                 ),
                 contentDescription = game.name,
                 modifier = Modifier
