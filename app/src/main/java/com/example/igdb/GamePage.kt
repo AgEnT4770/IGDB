@@ -288,7 +288,7 @@ fun ExpandableText(
 }
 
 
-// the back an add to favourites buttons
+//back and add to favourites buttons
 @Composable
 fun TopButtons(modifier: Modifier = Modifier, onBackClicked: () -> Unit, game: Game, viewModel: GameViewModel, context: android.content.Context) {
     val isFavorite = viewModel.isFavorite(game.id)
@@ -334,7 +334,7 @@ fun TopButtons(modifier: Modifier = Modifier, onBackClicked: () -> Unit, game: G
 }
 
 
-//the card under the game image which contains all it's info
+//the card under the game image which contains all its info
 @Composable
 fun InfoCard(
     modifier: Modifier = Modifier,
@@ -422,7 +422,7 @@ fun TabMenu(game: Game, viewModel: GameViewModel) {
                             .height(400.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("No reviews yet. Be the first!")
+                        Text(stringResource(R.string.no_reviews_yet_be_the_first))
                     }
                 } else {
                     LazyColumn(modifier = Modifier.height(400.dp)) {
@@ -849,7 +849,8 @@ fun BottomSheet(modifier: Modifier = Modifier, gameId: Int, viewModel: GameViewM
                         viewModel.addReview(gameId, rate, review, context)
                         onDismiss()
                     } else {
-                        Toast.makeText(context, "Please fill all fields", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context,
+                            context.getString(R.string.please_fill_all_fields), Toast.LENGTH_SHORT).show()
                     }
                 },
                 colors = ButtonDefaults.buttonColors(

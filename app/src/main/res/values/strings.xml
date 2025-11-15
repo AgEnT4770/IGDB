@@ -17,4 +17,6 @@
     <string name="submit_review">Submit Review</string>
     <string name="thanks_for_your_rating">Thanks For Your Rating</string>
     <string name="tab_to_change_your_rate">tab to change your rate</string>
+    <string name="no_reviews_yet_be_the_first">No reviews yet. Be the first!</string>
+    <string name="please_fill_all_fields">Please fill all fields</string>
 </resources>
