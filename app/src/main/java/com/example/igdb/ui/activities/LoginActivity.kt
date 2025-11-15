@@ -245,8 +245,7 @@ fun LoginCredentials(authManager: Authentication?) {
                 else {
                     authManager?.signIn(email, password) { success ->
                         isLoading = false
-                        if (!success) Toast.makeText(context,
-                            context.getString(R.string.login_failed), Toast.LENGTH_SHORT).show()
+
                     }
                 }
             },
