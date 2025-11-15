@@ -285,7 +285,6 @@ class Authentication(private val context: Context) {
                             .document(userId)
                             .update("username", newName)
                             .addOnSuccessListener {
-                                Toast.makeText(context, "Updating reviews...", Toast.LENGTH_SHORT).show()
                                 updateReviewsWithNewName(userId, newName) {
                                     Toast.makeText(context, "Display name updated successfully", Toast.LENGTH_SHORT).show()
                                     onComplete(true)
@@ -785,7 +784,6 @@ class Authentication(private val context: Context) {
                             .document(userId)
                             .update("profilePictureUrl", imageUrl)
                             .addOnSuccessListener {
-                                Toast.makeText(context, "Updating reviews...", Toast.LENGTH_SHORT).show()
                                 updateReviewsWithNewProfilePicture(userId, imageUrl) {
                                     Toast.makeText(context, "Profile picture updated successfully", Toast.LENGTH_SHORT).show()
                                     onComplete(true)
