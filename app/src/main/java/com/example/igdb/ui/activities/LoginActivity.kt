@@ -57,20 +57,20 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.igdb.R
-import com.example.igdb.auth.Authentication
+import com.example.igdb.auth.Login
 import com.example.igdb.ui.theme.IGDBTheme
 import com.example.igdb.ui.theme.Orange
 import com.example.igdb.ui.theme.OutlinedFieldStyles
 
 
 class LoginActivity : ComponentActivity() {
-    private lateinit var authManager: Authentication
+    private lateinit var authManager: Login
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        authManager = Authentication(this)
+        authManager = Login(this)
         setContent {
             IGDBTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -86,7 +86,7 @@ class LoginActivity : ComponentActivity() {
 }
 
 @Composable
-fun LoginDesign(modifier: Modifier = Modifier , authManager: Authentication? = null) {
+fun LoginDesign(modifier: Modifier = Modifier , authManager: Login? = null) {
     Box(
         modifier = modifier
             .fillMaxSize(),
@@ -150,7 +150,7 @@ fun LoginDesign(modifier: Modifier = Modifier , authManager: Authentication? = n
 
 
 @Composable
-fun LoginCredentials(authManager: Authentication?) {
+fun LoginCredentials(authManager: Login?) {
     val context = LocalContext.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }

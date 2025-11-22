@@ -7,8 +7,6 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import com.example.igdb.data.User
 import com.example.igdb.ui.activities.LoginActivity
-import com.example.igdb.ui.activities.MainActivity
-import com.example.igdb.ui.activities.SignupActivity
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
@@ -61,138 +59,7 @@ class Authentication(private val context: Context) {
         }
     }
 
-    fun signUp(
-        email: String,
-        password: String,
-        firstName: String,
-        lastName: String,
-        onComplete: (Boolean) -> Unit
-    ) {
-        try {
-            auth.createUserWithEmailAndPassword(email, password)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        addUserName(firstName, lastName)
-                        onComplete(true)
-                    } else {
-                        val errorMessage = handleError(task.exception, "Signup failed")
-                        Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
-                        onComplete(false)
-                    }
-                }
-                .addOnFailureListener { exception ->
-                    onComplete(false)
-                }
-        } catch (e: Exception) {
-            val errorMessage = handleError(e, "Signup failed")
-            Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
-            onComplete(false)
-        }
-    }
 
-    private fun addUserName(firstName: String, lastName: String) {
-        try {
-            val userId = auth.currentUser?.uid
-            if (userId == null) {
-                Log.e(TAG, "User ID is null")
-                return
-            }
-
-            val user = User(userId = userId, username = "$firstName $lastName")
-
-            Firebase
-                .firestore
-                .collection("Users")
-                .document(userId)
-                .set(user)
-                .addOnSuccessListener {
-                    verifyEmail()
-                }
-        } catch (e: Exception) {
-            val errorMessage = handleError(e, "Failed to save user data")
-            Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun verifyEmail() {
-        try {
-            val user = auth.currentUser
-            user?.sendEmailVerification()?.addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    Toast.makeText(
-                        context,
-                        "Check your inbox to verify your email",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    context.startActivity(Intent(context, LoginActivity::class.java))
-                    if (context is SignupActivity) context.finish()
-                }
-            }
-        } catch (e: Exception) {
-            val errorMessage = handleError(e, "Failed to send verification email")
-            Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    fun signIn(email: String, password: String, onComplete: (Boolean) -> Unit) {
-        try {
-            auth.signInWithEmailAndPassword(email, password)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        if (auth.currentUser?.isEmailVerified == true) {
-                            Toast.makeText(context, "Login Successfully", Toast.LENGTH_SHORT).show()
-                            val intent = Intent(context, MainActivity::class.java)
-                            context.startActivity(intent)
-                            if (context is LoginActivity) context.finish()
-                            onComplete(true)
-                        } else {
-                            Toast.makeText(context, "Verify your Email!", Toast.LENGTH_SHORT).show()
-                            onComplete(false)
-                        }
-                    }
-                }
-                .addOnFailureListener { exception ->
-                    Toast.makeText(context, "Email or password is incorrect", Toast.LENGTH_SHORT).show()
-                    onComplete(false)
-                }
-        } catch (e: Exception) {
-            onComplete(false)
-        }
-    }
-
-    fun resetPassword(email: String, onComplete: (Boolean) -> Unit) {
-        if (email.isBlank()) {
-            Toast.makeText(context, "Missing Email", Toast.LENGTH_SHORT).show()
-            onComplete(false)
-            return
-        }
-
-        try {
-            auth.sendPasswordResetEmail(email)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        Toast.makeText(context, "Password reset email sent!", Toast.LENGTH_SHORT)
-                            .show()
-                        onComplete(true)
-                    }
-                }
-                .addOnFailureListener { exception ->
-                    onComplete(false)
-                }
-        } catch (e: Exception) {
-            val errorMessage = handleError(e, "Failed to send email")
-            Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
-            onComplete(false)
-        }
-    }
-
-    fun checkCurrentUser(activity: ComponentActivity) {
-        val currentUser = auth.currentUser
-        if (currentUser != null && currentUser.isEmailVerified) {
-            activity.startActivity(Intent(activity, MainActivity::class.java))
-            activity.finish()
-        }
-    }
 
     fun getCurrentUser(): com.google.firebase.auth.FirebaseUser? {
         return auth.currentUser
