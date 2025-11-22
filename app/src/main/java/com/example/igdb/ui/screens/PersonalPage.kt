@@ -1,4 +1,4 @@
-package com.example.igdb
+package com.example.igdb.ui.screens
 
 import android.content.Intent
 import android.net.Uri
@@ -37,6 +37,10 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -69,14 +73,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImagePainter
 import coil.compose.rememberAsyncImagePainter
+import com.example.igdb.R
+import com.example.igdb.auth.Authentication
+import com.example.igdb.data.CloudinaryUploader
+import com.example.igdb.data.User
 import com.example.igdb.ui.theme.IGDBTheme
+import com.example.igdb.viewmodel.PreviewGameViewModel
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun PersonalPage(modifier: Modifier = Modifier) {
     val context = LocalContext.current
@@ -85,6 +96,7 @@ fun PersonalPage(modifier: Modifier = Modifier) {
 
     var userInfo by remember { mutableStateOf<User?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    var isRefreshing by remember { mutableStateOf(false) }
     var displayName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var profilePictureUrl by remember { mutableStateOf("") }
@@ -93,7 +105,9 @@ fun PersonalPage(modifier: Modifier = Modifier) {
     var showChangeEmailDialog by remember { mutableStateOf(false) }
     var showChangePasswordDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
+
+    fun loadUserInfo() {
+        isLoading = true
         authManager.getUserInfo { user ->
             userInfo = user
             if (user != null) {
@@ -111,15 +125,28 @@ fun PersonalPage(modifier: Modifier = Modifier) {
                 }
             }
             isLoading = false
+            isRefreshing = false
         }
     }
+
+    LaunchedEffect(Unit) {
+        loadUserInfo()
+    }
+
+    val pullRefreshState = rememberPullRefreshState(
+        refreshing = isRefreshing,
+        onRefresh = {
+            isRefreshing = true
+            loadUserInfo()
+        }
+    )
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
             val userId = auth.currentUser?.uid ?: return@let
-            uploadProfilePicture(context, authManager, it, userId) { success, url ->
+            uploadProfilePicture(context, authManager, it, userId) { success: Boolean, url: String? ->
                 if (success && url != null) {
                     profilePictureUrl = url
                 }
@@ -127,20 +154,21 @@ fun PersonalPage(modifier: Modifier = Modifier) {
         }
     }
 
-    if (isLoading) {
-        Box(
-            modifier = modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator()
-        }
-    } else {
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+    Box(modifier = modifier.pullRefresh(pullRefreshState)) {
+        if (isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
             Box(
                 modifier = Modifier
                     .padding(vertical = 24.dp)
@@ -237,7 +265,13 @@ fun PersonalPage(modifier: Modifier = Modifier) {
                     fontWeight = FontWeight.Bold
                 )
             }
+            }
         }
+        PullRefreshIndicator(
+            refreshing = isRefreshing,
+            state = pullRefreshState,
+            modifier = Modifier.align(Alignment.TopCenter)
+        )
     }
 
     if (showEditDisplayNameDialog) {
@@ -650,7 +684,7 @@ fun uploadProfilePicture(
     }
 }
 
-private fun handleUploadError(exception: Exception?, defaultMessage: String): String {
+fun handleUploadError(exception: Exception?, defaultMessage: String): String {
     return when (exception) {
         is UnknownHostException -> {
             Log.e("PersonalPage", "No internet connection", exception)
@@ -670,4 +704,3 @@ private fun handleUploadError(exception: Exception?, defaultMessage: String): St
         }
     }
 }
-

@@ -1,4 +1,4 @@
-package com.example.igdb
+package com.example.igdb.data
 
 import android.content.Context
 import android.net.Uri
@@ -14,14 +14,33 @@ import java.util.UUID
 
 object CloudinaryUploader {
     private const val TAG = "CloudinaryUploader"
+    @Volatile
+    private var isInitialized = false
     
     fun init(context: Context, cloudName: String, apiKey: String, apiSecret: String) {
-        val config = hashMapOf(
-            "cloud_name" to cloudName,
-            "api_key" to apiKey,
-            "api_secret" to apiSecret
-        )
-        MediaManager.init(context, config)
+        if (isInitialized) {
+            Log.d(TAG, "MediaManager already initialized, skipping initialization")
+            return
+        }
+        
+        try {
+            val config = hashMapOf(
+                "cloud_name" to cloudName,
+                "api_key" to apiKey,
+                "api_secret" to apiSecret
+            )
+            MediaManager.init(context, config)
+            isInitialized = true
+            Log.d(TAG, "MediaManager initialized successfully")
+        } catch (e: IllegalStateException) {
+            if (e.message?.contains("already initialized") == true) {
+                Log.d(TAG, "MediaManager was already initialized by another instance")
+                isInitialized = true
+            } else {
+                Log.e(TAG, "Failed to initialize MediaManager", e)
+                throw e
+            }
+        }
     }
 
     fun uploadProfilePicture(

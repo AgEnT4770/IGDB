@@ -1,4 +1,4 @@
-package com.example.igdb
+package com.example.igdb.ui.activities
 
 import android.content.Intent
 import android.os.Bundle
@@ -33,7 +33,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,7 +47,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -57,9 +56,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.igdb.R
+import com.example.igdb.auth.Authentication
 import com.example.igdb.ui.theme.IGDBTheme
 import com.example.igdb.ui.theme.Orange
-
+import com.example.igdb.ui.theme.OutlinedFieldStyles
 
 
 class SignupActivity : ComponentActivity() {
@@ -101,7 +102,7 @@ fun SignupDesign(modifier: Modifier = Modifier, authManager: Authentication? = n
         ) {
             Image(
                 painter = painterResource(R.drawable.app_icn),
-                contentDescription = "IGDB Logo",
+                contentDescription = stringResource(R.string.igdb_logo),
                 modifier = Modifier
                     .padding(top = 28.dp, bottom = 16.dp)
                     .size(100.dp)
@@ -124,10 +125,9 @@ fun SignupDesign(modifier: Modifier = Modifier, authManager: Authentication? = n
                         .padding(24.dp)
                         .fillMaxWidth(),
                 ) {
-                    Spacer(modifier = Modifier.height(8.dp))
-
+                    OutlinedFieldStyles.Spacer
                     Text(
-                        text = "Sign Up",
+                        text = stringResource(R.string.sign_up_title),
                         style = MaterialTheme.typography.headlineLarge,
                         color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center,
@@ -170,75 +170,51 @@ fun SignupCredentials(authManager: Authentication? = null) {
             OutlinedTextField(
                 value = firstName,
                 onValueChange = { firstName = it },
-                label = { Text("First Name") },
+                label = { Text(stringResource(R.string.first_name)) },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text
                 ),
-                textStyle = TextStyle(
-                    brush = gradColors,
-                    fontSize = 16.sp
-                ),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    focusedLabelColor = MaterialTheme.colorScheme.primary,
-                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
+                textStyle = OutlinedFieldStyles.textStyle(gradColors),
+                colors = OutlinedFieldStyles.colors,
                 singleLine = true,
                 modifier = Modifier.weight(1F)
             )
             OutlinedTextField(
                 value = lastName,
                 onValueChange = { lastName = it },
-                label = { Text("Last Name") },
+                label = { Text(stringResource(R.string.last_name)) },
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Text
                 ),
-                textStyle = TextStyle(
-                    brush = gradColors,
-                    fontSize = 16.sp
-                ),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    focusedLabelColor = MaterialTheme.colorScheme.primary,
-                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                ),
+                textStyle = OutlinedFieldStyles.textStyle(gradColors),
+                colors = OutlinedFieldStyles.colors,
                 singleLine = true,
                 modifier = Modifier.weight(1F)
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedFieldStyles.Spacer
 
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("Email") },
+            label = { Text(stringResource(R.string.email)) },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Email
             ),
-            textStyle = TextStyle(
-                brush = gradColors,
-                fontSize = 16.sp
-            ),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                focusedLabelColor = MaterialTheme.colorScheme.primary,
-                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-            ),
+            textStyle = OutlinedFieldStyles.textStyle(gradColors),
+            colors = OutlinedFieldStyles.colors,
 
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedFieldStyles.Spacer
 
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Password") },
+            label = { Text(stringResource(R.string.password)) },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password
             ),
@@ -255,31 +231,23 @@ fun SignupCredentials(authManager: Authentication? = null) {
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(
                         imageVector = image,
-                        contentDescription = if (passwordVisible) "Hide password"
-                        else "Show password",
+                        contentDescription = if (passwordVisible) stringResource(R.string.hide_password)
+                        else stringResource(R.string.show_password),
                         tint = if (passwordVisible) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             },
-            textStyle = TextStyle(
-                brush = gradColors,
-                fontSize = 16.sp
-            ),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                focusedLabelColor = MaterialTheme.colorScheme.primary,
-                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-            ),
+            textStyle = OutlinedFieldStyles.textStyle(gradColors),
+            colors = OutlinedFieldStyles.colors,
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedFieldStyles.Spacer
 
         OutlinedTextField(
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
-            label = { Text("Confirm Password") },
+            label = { Text ((stringResource(R.string.confirm_password))) },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password
             ),
@@ -296,23 +264,14 @@ fun SignupCredentials(authManager: Authentication? = null) {
                 IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
                     Icon(
                         imageVector = image,
-                        contentDescription = if (confirmPasswordVisible) "Hide password"
-                        else "Show password",
+                        contentDescription = if (passwordVisible) stringResource(R.string.hide_password)
+                        else stringResource(R.string.show_password),
                         tint = if (confirmPasswordVisible) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             },
-            textStyle = TextStyle(
-                brush = gradColors,
-                fontSize = 16.sp
-            ),
-
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                focusedLabelColor = MaterialTheme.colorScheme.primary,
-                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-            ),
+            textStyle = OutlinedFieldStyles.textStyle(gradColors),
+            colors = OutlinedFieldStyles.colors,
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -323,40 +282,41 @@ fun SignupCredentials(authManager: Authentication? = null) {
                 when {
                     firstName.isBlank() -> Toast.makeText(
                         context,
-                        "Missing First Name",
+                        context.getString(R.string.missing_first_name),
                         Toast.LENGTH_SHORT
                     ).show()
 
                     lastName.isBlank() -> Toast.makeText(
                         context,
-                        "Missing Last Name",
+                        context.getString(R.string.missing_last_name),
                         Toast.LENGTH_SHORT
                     ).show()
 
-                    email.isBlank() -> Toast.makeText(context, "Missing Email", Toast.LENGTH_SHORT)
+                    email.isBlank() -> Toast.makeText(context,
+                        context.getString(R.string.missing_email), Toast.LENGTH_SHORT)
                         .show()
 
                     password.isBlank() -> Toast.makeText(
                         context,
-                        "Missing Password",
+                        context.getString(R.string.missing_password),
                         Toast.LENGTH_SHORT
                     ).show()
 
                     confirmPassword.isBlank() -> Toast.makeText(
                         context,
-                        "Missing Password Confirmation",
+                        context.getString(R.string.missing_password_confirmation),
                         Toast.LENGTH_SHORT
                     ).show()
 
                     password != confirmPassword -> Toast.makeText(
                         context,
-                        "Passwords don't match",
+                        context.getString(R.string.passwords_dont_match),
                         Toast.LENGTH_SHORT
                     ).show()
 
                     password.length < 8 -> Toast.makeText(
                         context,
-                        "Minimum password length is 8",
+                        context.getString(R.string.minimum_password_length),
                         Toast.LENGTH_SHORT
                     ).show()
 
@@ -380,27 +340,27 @@ fun SignupCredentials(authManager: Authentication? = null) {
         ) {
             Image(
                 painter = painterResource(id = R.drawable.signup1),
-                contentDescription = "Signup Button",
+                contentDescription = stringResource(R.string.signup_button),
                 contentScale = ContentScale.Crop
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedFieldStyles.Spacer
         Text(
-            text = "OR",
+            text = stringResource(R.string.or),
             color = MaterialTheme.colorScheme.primary,
             fontWeight = FontWeight.Bold,
             fontSize = 20.sp,
             modifier = Modifier
                 .align(Alignment.CenterHorizontally),
         )
-        Spacer(modifier = Modifier.height(8.dp))
-
+        OutlinedFieldStyles.Spacer
         Button(
             onClick = {
                 isLoading = true
                 val intent = Intent(context, LoginActivity::class.java)
                 context.startActivity(intent)
+                if (context is SignupActivity) context.finish()
             },
             modifier = Modifier
                 .width(108.dp)
@@ -411,7 +371,7 @@ fun SignupCredentials(authManager: Authentication? = null) {
         ) {
             Image(
                 painter = painterResource(id = R.drawable.login),
-                contentDescription = "Login Button",
+                contentDescription = stringResource(R.string.login_button),
                 contentScale = ContentScale.Crop
             )
         }

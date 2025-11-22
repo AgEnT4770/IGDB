@@ -73,7 +73,7 @@ Goals:
 
 3- Marwan Mohamed (Responsible for the Filter and Search page)
 
-4- Mohamaed Ibrahim (Responsible for Game Details page)
+4- Mohamaed Ibrahim Lotfy (Responsible for Game Details page)
 
 5- Youssef Mohamed ( Responsible for Login, Signup, and splash screen) 
 

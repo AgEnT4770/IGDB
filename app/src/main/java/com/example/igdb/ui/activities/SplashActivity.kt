@@ -1,4 +1,4 @@
-package com.example.igdb
+package com.example.igdb.ui.activities
 
 import android.content.Intent
 import android.os.Bundle
@@ -32,6 +32,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.igdb.R
 import com.example.igdb.ui.theme.IGDBTheme
 import kotlinx.coroutines.delay
 
@@ -52,7 +53,6 @@ class SplashActivity : ComponentActivity() {
 fun SplashScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
 
-    // Infinite fade animation
     val infiniteTransition = rememberInfiniteTransition()
     val alpha by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -63,15 +63,13 @@ fun SplashScreen(modifier: Modifier = Modifier) {
         )
     )
 
-    // Navigate to next screen after splash
     LaunchedEffect(Unit) {
-        delay(2300) // total splash duration
+        delay(2300)
         context.startActivity(Intent(context, LoginActivity::class.java))
         if (context is SplashActivity) context.finish()
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Background
         Image(
             painter = painterResource(id = R.drawable.bg),
             contentDescription = null,
@@ -81,7 +79,6 @@ fun SplashScreen(modifier: Modifier = Modifier) {
                 .alpha(0.2f)
         )
 
-        // Centered Icon with fade
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -91,7 +88,7 @@ fun SplashScreen(modifier: Modifier = Modifier) {
                 contentDescription = "App Logo",
                 modifier = Modifier
                     .size(140.dp)
-                    .alpha(alpha) // apply fade
+                    .alpha(alpha)
                     .clip(CircleShape)
                     .border(
                         2.dp,

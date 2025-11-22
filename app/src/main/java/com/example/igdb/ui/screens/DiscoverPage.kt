@@ -1,4 +1,4 @@
-package com.example.igdb
+package com.example.igdb.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -38,6 +39,14 @@ import androidx.compose.material3.*
 import androidx.compose.material3.ExposedDropdownMenuDefaults.outlinedTextFieldColors
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import com.example.igdb.data.Game
+import com.example.igdb.data.Genre
+import com.example.igdb.ui.activities.GameCard
+import com.example.igdb.ui.activities.genres
+import com.example.igdb.ui.theme.IGDBTheme
+import com.example.igdb.viewmodel.GameViewModel
+import com.example.igdb.viewmodel.PreviewGameViewModel
+
 @Composable
 fun DiscoverPage(
     modifier: Modifier = Modifier,
@@ -152,7 +161,7 @@ fun GenreChips(
 }
 
 @Composable
-fun GameGrid(games: List<Game>,onGameClicked: (Int) -> Unit) {
+fun GameGrid(games: List<Game>, onGameClicked: (Int) -> Unit) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -160,8 +169,15 @@ fun GameGrid(games: List<Game>,onGameClicked: (Int) -> Unit) {
         modifier = Modifier.fillMaxSize()
     ) {
         items(games) { game ->
-            GameCard(game,onGameClicked = onGameClicked)
+            GameCard(game, onGameClicked = onGameClicked)
         }
     }
 }
 
+@Preview(showSystemUi = true)
+@Composable
+fun DiscoverPagePreview() {
+    IGDBTheme {
+        DiscoverPage(gameViewModel = PreviewGameViewModel()) {}
+    }
+}

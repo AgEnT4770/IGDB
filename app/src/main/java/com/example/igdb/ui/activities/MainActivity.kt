@@ -1,7 +1,11 @@
-package com.example.igdb
+package com.example.igdb.ui.activities
 
 import android.annotation.SuppressLint
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -36,6 +40,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
 import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
@@ -47,16 +52,22 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -80,9 +91,19 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import coil.compose.rememberAsyncImagePainter
+import com.example.igdb.R
+import com.example.igdb.data.CloudinaryUploader
+import com.example.igdb.data.Game
+import com.example.igdb.data.Genre
+import com.example.igdb.ui.screens.DiscoverPage
+import com.example.igdb.ui.screens.FavouritesPage
+import com.example.igdb.ui.screens.GamePage
+import com.example.igdb.ui.screens.PersonalPage
 import com.example.igdb.ui.theme.Gold
 import com.example.igdb.ui.theme.IGDBTheme
 import com.example.igdb.ui.theme.White
+import com.example.igdb.viewmodel.GameViewModel
+import com.example.igdb.viewmodel.PreviewGameViewModel
 import com.valentinilk.shimmer.shimmer
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -94,6 +115,27 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
+        Thread.setDefaultUncaughtExceptionHandler { thread, exception ->
+            Log.e("MainActivity", "Uncaught exception in thread ${thread.name}", exception)
+            when {
+                exception is OutOfMemoryError -> {
+                    Log.e("MainActivity", "Out of memory error")
+                }
+                exception is IllegalStateException -> {
+                    Log.e("MainActivity", "Illegal state exception")
+                }
+                exception is retrofit2.HttpException -> {
+                    Log.w("MainActivity", "HTTP exception caught: ${exception.code()}")
+                }
+                exception is kotlinx.coroutines.CancellationException -> {
+                    Log.d("MainActivity", "Coroutine cancellation (normal)")
+                }
+                else -> {
+                    Log.e("MainActivity", "Unhandled exception: ${exception.javaClass.simpleName}")
+                }
+            }
+        }
+        
         CloudinaryUploader.init(
             context = this,
             cloudName = "dbj2gefic",
@@ -103,42 +145,166 @@ class MainActivity : ComponentActivity() {
         
         setContent {
             IGDBTheme {
-                AppNavigation()
+                var isOffline by remember { mutableStateOf<Boolean?>(null) }
+                
+                LaunchedEffect(Unit) {
+                    isOffline = !isNetworkAvailable(this@MainActivity)
+                }
+                
+                when (isOffline) {
+                    true -> OfflineDialog(
+                        onRetry = {
+                            isOffline = !isNetworkAvailable(this@MainActivity)
+                        },
+                        onExit = {
+                            finishAffinity()
+                        }
+                    )
+                    false -> AppNavigation()
+                    null -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                }
             }
         }
     }
+
+    private fun isNetworkAvailable(context: Context): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val activeNetwork = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return when {
+            activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
+            activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
+            activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
+            else -> false
+        }
+    }
+}
+
+fun isNetworkAvailable(context: Context): Boolean {
+    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val network = connectivityManager.activeNetwork ?: return false
+    val activeNetwork = connectivityManager.getNetworkCapabilities(network) ?: return false
+    return when {
+        activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
+        activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
+        activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
+        else -> false
+    }
+}
+
+@Composable
+fun OfflineDialog(
+    onRetry: () -> Unit,
+    onExit: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = { },
+        title = {
+            Text("No Internet Connection")
+        },
+        text = {
+            Text("Please check your internet connection and try again.")
+        },
+        confirmButton = {
+            TextButton(onClick = onRetry) {
+                Text("Retry")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onExit) {
+                Text("Exit")
+            }
+        }
+    )
 }
 
 @Composable
 fun AppNavigation(gameViewModel: GameViewModel = viewModel()) {
     val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = "main") {
-        composable("main") {
-            MainScreen(navController = navController, gameViewModel = gameViewModel)
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var isOffline by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(Unit) {
+        while (true) {
+            isOffline = !isNetworkAvailable(context as Context)
+            kotlinx.coroutines.delay(2000)
         }
-        composable(
-            route = "gameDetails/{gameId}",
-            arguments = listOf(navArgument("gameId") { type = NavType.IntType })
-        ) { backStackEntry ->
-            val gameId = backStackEntry.arguments?.getInt("gameId")
-            if (gameId != null) {
-                GamePage(
-                    gameId = gameId,
-                    viewModel = gameViewModel,
-                    onGameClicked = { clickedGameId ->
-                        navController.navigate("gameDetails/$clickedGameId")
-                    },
-                    onBackClicked = { navController.popBackStack() }
-                )
+    }
+    
+    Box(modifier = Modifier.fillMaxSize()) {
+        NavHost(navController = navController, startDestination = "main") {
+            composable("main") {
+                MainScreen(navController = navController, gameViewModel = gameViewModel)
             }
+            composable(
+                route = "gameDetails/{gameId}",
+                arguments = listOf(navArgument("gameId") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val gameId = backStackEntry.arguments?.getInt("gameId")
+                if (gameId != null) {
+                    GamePage(
+                        gameId = gameId,
+                        viewModel = gameViewModel,
+                        onGameClicked = { clickedGameId ->
+                            navController.navigate("gameDetails/$clickedGameId")
+                        },
+                        onBackClicked = { navController.popBackStack() }
+                    )
+                }
+            }
+        }
+        
+        if (isOffline) {
+            OfflineBanner(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 56.dp)
+            )
         }
     }
 }
 
+@Composable
+fun OfflineBanner(modifier: Modifier = Modifier) {
+    Surface(
+        color = Color(0xFFD32F2F),
+        tonalElevation = 4.dp,
+        shadowElevation = 2.dp,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Warning,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = "You're offline. Some features may not work.",
+                color = Color.White,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.2.sp
+            )
+        }
+    }
+}
 
-data class Genre(val name: String, val slug: String)
-
-internal val genres = listOf(
+val genres = listOf(
     Genre("Trending", "-popularity"),
     Genre("Action", "action"),
     Genre("Adventure", "adventure"),
@@ -163,7 +329,7 @@ internal val genres = listOf(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun LineIndicator(
+fun LineIndicator(
     pagerState: PagerState,
     modifier: Modifier = Modifier,
 ) {
@@ -458,7 +624,7 @@ fun TrendingGameCard(game: Game, onGameClicked: (Int) -> Unit, modifier: Modifie
             Image(
                 painter = rememberAsyncImagePainter(
                     model = game.background_image,
-                    placeholder = painterResource(id = R.drawable.gamingbook)
+                    placeholder = painterResource(id = R.drawable.app_icn)
                 ),
                 contentDescription = game.name,
                 modifier = Modifier.fillMaxSize(),
@@ -486,7 +652,7 @@ fun TrendingGameCard(game: Game, onGameClicked: (Int) -> Unit, modifier: Modifie
                     }
                     Spacer(Modifier.width(4.dp))
                     Icon(
-                        imageVector = Icons.Default.Star,
+                        imageVector = Icons.Filled.Star,
                         contentDescription = null,
                         tint = Gold,
                         modifier = Modifier.size(16.dp)
@@ -510,7 +676,7 @@ fun GameCard(game: Game, onGameClicked: (Int) -> Unit) {
             Image(
                 painter = rememberAsyncImagePainter(
                     model = game.background_image,
-                    placeholder = painterResource(id = R.drawable.gamingbook) // Placeholder image
+                    placeholder = painterResource(id = R.drawable.app_icn)
                 ),
                 contentDescription = game.name,
                 modifier = Modifier
@@ -664,5 +830,20 @@ fun ShimmerLoading() {
 fun GreetingPreview() {
     IGDBTheme {
         AppNavigation(gameViewModel = PreviewGameViewModel())
+    }
+}
+
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter", "ViewModelConstructorInComposable")
+@Preview(showSystemUi = true)
+@Composable
+fun ScrollContentPreview() {
+    IGDBTheme {
+        Scaffold {
+            ScrollContent(
+                gameViewModel = PreviewGameViewModel(),
+                onShowMoreClicked = {},
+                onGameClicked = {}
+            )
+        }
     }
 }
