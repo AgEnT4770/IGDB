@@ -39,4 +39,10 @@
     <string name="show_password">Show password</string>
     <string name="forgot_password">Forgot your Password?</string>
     <string name="login_failed">Login Failed</string>
+    <string name="please_fill_all_fields">Please fill all fields</string>
+    <string name="oops_something_went_wrong">Oops! Something went wrong</string>
+    <string name="try_again">Try Again</string>
+    <string name="no_reviews_yet_be_the_first">No reviews yet. Be the first!</string>
+    <string name="an_error_occurred">An error occurred</string>
+    <string name="screenshots">Screenshots</string>
 </resources>

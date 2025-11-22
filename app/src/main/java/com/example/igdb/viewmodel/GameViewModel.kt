@@ -8,7 +8,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.igdb.data.Game
 import com.example.igdb.data.GameGenre
-import com.example.igdb.data.GameResponse
 import com.example.igdb.data.Genre
 import com.example.igdb.data.Platform
 import com.example.igdb.data.PlatformEntry
@@ -52,6 +51,110 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
         private const val TAG = "GameViewModel"
     }
 
+
+    private val badWords = setOf(
+        "fuck", "fucking", "fucker", "fuckoff", "motherfucker",
+        "shit", "bullshit", "shithead",
+        "bitch", "bitches", "sonofabitch",
+        "ass", "asshole", "dumbass", "jackass",
+        "bastard",
+        "cunt",
+        "dick", "dickhead",
+        "pussy",
+        "whore", "slut",
+        "moron", "idiot", "stupid",
+        "crap",
+        "jerk",
+        "loser",
+        "retard",
+        "fag", "faggot",
+        "hoe",
+
+        "fck", "fcuk", "fuk",
+        "sht", "sh1t",
+        "biatch",
+        "b!tch", "b1tch",
+        "a$$", "a55",
+        "d1ck",
+        "c0ck",
+
+        "عرص",
+        "كسمك",
+        "كسها",
+        "خول",
+        "متناك",
+        "زبي",
+        "زب",
+        "منيك",
+        "قحب",
+        "قحبة",
+        "شرموط",
+        "شرموطة",
+        "وسخ",
+        "حيوان",
+        "غبي",
+        "مغفل",
+        "سيس",
+        "متخلف",
+        "كلب",
+        "يا كلب",
+        "ابن الوسخة",
+        "ابن المتناك",
+        "ابن الشرموطة",
+        "منيكك",
+        "طيز",
+        "متناكين",
+        "ولاد الكلب",
+        "وسخة",
+        "وسخين",
+        "زبير",
+
+        "يا ابن المرة",
+        "يا ابن الكلب",
+        "يا ابن الشرموطة",
+        "متناك",
+        "منتاك",
+        "عرص ابن عرص",
+        "كسمكوا",
+        "كسختك",
+        "يا معفن",
+        "يا وسخ",
+        "قرف",
+        "حمار",
+        "حمار انت",
+        "طياز",
+        "طيظ",
+        "طياظ",
+
+        "غبي", "هبيل", "تافه", "مسطول"
+        ,"بتطس","بتتس","مدعر","مومس",
+        "أهطل","اهطل","اهبل","أهبل",
+
+
+        "3rs", "ars",
+        "kosomak", "kos omak",
+        "kosomko",
+        "manyak", "manyak",
+        "sharmouta", "sharmoota",
+        "kleb", "kalb",
+        "7omar", "homar",
+        "ghabi", "ghaby",
+        "m5n2", "mkhanza",
+        "kos", "ks",
+
+        // Alternate spellings
+        "kosk", "kosmk", "ksmk",
+        "nk", "mnek",
+        "tiz", "tyz",
+        "zpy","zpi"
+    )
+
+
+    private fun isReviewInappropriate(text: String): Boolean {
+        val lowercasedText = text.lowercase()
+        return badWords.any { badWord -> lowercasedText.contains(badWord) }
+    }
+
     private val firestore = if (inPreview) null else FirebaseFirestore.getInstance()
     private val auth = if (inPreview) null else FirebaseAuth.getInstance()
     private val userId = auth?.currentUser?.uid
@@ -62,14 +165,17 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
                 Log.e(TAG, "No internet connection", exception)
                 "No internet connection. Please check your network and try again."
             }
+
             is SocketTimeoutException -> {
                 Log.e(TAG, "Connection timeout", exception)
                 "Connection timeout. Please check your internet and try again."
             }
+
             is ConnectException -> {
                 Log.e(TAG, "Connection failed", exception)
                 "Unable to connect. Please check your internet connection."
             }
+
             is retrofit2.HttpException -> {
                 val code = exception.code()
                 val message = when (code) {
@@ -82,10 +188,12 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
                 Log.e(TAG, "HTTP error $code: $message", exception)
                 message
             }
+
             is kotlinx.coroutines.CancellationException -> {
                 Log.w(TAG, "Request cancelled", exception)
                 "Request cancelled"
             }
+
             is com.google.firebase.firestore.FirebaseFirestoreException -> {
                 if (exception.message?.contains("offline") == true || exception.message?.contains("UNAVAILABLE") == true) {
                     Log.e(TAG, "Firestore offline", exception)
@@ -95,6 +203,7 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
                     exception.message ?: defaultMessage
                 }
             }
+
             else -> {
                 Log.e(TAG, defaultMessage, exception)
                 exception?.message ?: defaultMessage
@@ -117,9 +226,9 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
                     favoriteGames.value = gamesList
                 }
                 ?.addOnFailureListener { exception ->
-                        val errorMessage = handleError(exception, "Failed to load favorites")
-                        Log.e(TAG, errorMessage, exception)
-                    }
+                    val errorMessage = handleError(exception, "Failed to load favorites")
+                    Log.e(TAG, errorMessage, exception)
+                }
         } catch (e: Exception) {
             val errorMessage = handleError(e, "Failed to load favorites")
             Log.e(TAG, errorMessage, e)
@@ -133,12 +242,15 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
     fun toggleFavorite(game: Game, context: Context) {
         if (userId == null) return
         try {
-            val favoriteRef = firestore?.collection("Users")?.document(userId)?.collection("favorites")?.document(game.id.toString())
+            val favoriteRef =
+                firestore?.collection("Users")?.document(userId)?.collection("favorites")
+                    ?.document(game.id.toString())
             if (isFavorite(game.id)) {
                 favoriteRef?.delete()
-                    ?.addOnSuccessListener { 
-                        Toast.makeText(context, "Removed from Favourites", Toast.LENGTH_SHORT).show()
-                        fetchFavorites() 
+                    ?.addOnSuccessListener {
+                        Toast.makeText(context, "Removed from Favourites", Toast.LENGTH_SHORT)
+                            .show()
+                        fetchFavorites()
                     }
                     ?.addOnFailureListener { exception ->
                         val errorMessage = handleError(exception, "Failed to remove from favorites")
@@ -153,9 +265,9 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
                     "rating" to game.rating
                 )
                 favoriteRef?.set(gameData)
-                    ?.addOnSuccessListener { 
+                    ?.addOnSuccessListener {
                         Toast.makeText(context, "Added to Favourites", Toast.LENGTH_SHORT).show()
-                        fetchFavorites() 
+                        fetchFavorites()
                     }
                     ?.addOnFailureListener { exception ->
                         val errorMessage = handleError(exception, "Failed to add to favorites")
@@ -209,7 +321,7 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
         }
     }
 
-    fun fetchGamesByGenreAndSearch(genreName: String, genreSlug: String , query: String) {
+    fun fetchGamesByGenreAndSearch(genreName: String, genreSlug: String, query: String) {
         viewModelScope.launch {
             isLoading.value = true
             try {
@@ -218,7 +330,7 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
                     apiKey = "6e5ea525d41242d3b765b9e83eba84e7",
                     genres = if (!isTrending) genreSlug else null,
                     ordering = if (isTrending) genreSlug else null,
-                    pageSize = if (isTrending) 10 else 40 ,
+                    pageSize = if (isTrending) 10 else 40,
                     search = query,
                 )
 
@@ -280,23 +392,42 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
             isGameDetailsLoading.value = true
             gameDetailsError.value = null
             try {
-                val response = apiService.getGameDetails(
-                    id = gameId,
-                    apiKey = "6e5ea525d41242d3b765b9e83eba84e7",
-                )
-                       gameDetails.value = response
-                   } catch (e: Exception) {
-                       val errorMessage = handleError(e, "Failed to load game details")
-                       gameDetailsError.value = errorMessage
-                       Log.e(TAG, errorMessage, e)
-                       if (e is UnknownHostException || e is ConnectException || e is SocketTimeoutException) {
-                           Log.w(TAG, "Network error - you may be offline")
-                       }
-                   } finally {
-                       isGameDetailsLoading.value = false
-                   }
-        }
+                // Using async to fetch details, screenshots, and stores in parallel
+                val detailsDeferred = async {
+                    apiService.getGameDetails(
+                        id = gameId,
+                        apiKey = "6e5ea525d41242d3b765b9e83eba84e7"
+                    )
+                }
+                val screenshotsDeferred = async {
+                    apiService.getGameScreenshots(
+                        id = gameId,
+                        apiKey = "6e5ea525d41242d3b765b9e83eba84e7"
+                    )
+                }
 
+                // Await all results
+                val detailsResponse = detailsDeferred.await()
+                val screenshotsResponse = screenshotsDeferred.await()
+
+                // Combine the results into a single Game object
+                val fullGameDetails = detailsResponse.copy(
+                    short_screenshots = screenshotsResponse.results,
+                )
+
+                gameDetails.value = fullGameDetails
+
+            } catch (e: Exception) {
+                val errorMessage = handleError(e, "Failed to load game details")
+                gameDetailsError.value = errorMessage
+                Log.e(TAG, errorMessage, e)
+                if (e is UnknownHostException || e is ConnectException || e is SocketTimeoutException) {
+                    Log.w(TAG, "Network error - you may be offline")
+                }
+            } finally {
+                isGameDetailsLoading.value = false
+            }
+        }
     }
 
     open fun fetchRelatedGames(genreSlug: String) {
@@ -307,40 +438,52 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
                     genres = genreSlug,
                     pageSize = 10
                 )
-                       relatedGames.value = response.results
-                   } catch (e: Exception) {
-                       val errorMessage = handleError(e, "Failed to load related games")
-                       Log.e(TAG, errorMessage, e)
-                       if (e is UnknownHostException || e is ConnectException || e is SocketTimeoutException) {
-                           Log.w(TAG, "Network error - you may be offline")
-                       }
-                       relatedGames.value = emptyList()
-                   }
+                relatedGames.value = response.results
+            } catch (e: Exception) {
+                val errorMessage = handleError(e, "Failed to load related games")
+                Log.e(TAG, errorMessage, e)
+                if (e is UnknownHostException || e is ConnectException || e is SocketTimeoutException) {
+                    Log.w(TAG, "Network error - you may be offline")
+                }
+                relatedGames.value = emptyList()
+            }
         }
     }
 
     open fun fetchReviews(gameId: Int, context: Context) {
         areReviewsLoading.value = true
         try {
-            firestore?.collection("Reviews")?.document(gameId.toString())?.collection("game_reviews")?.get()
+            firestore?.collection("Reviews")?.document(gameId.toString())
+                ?.collection("game_reviews")?.get()
                 ?.addOnSuccessListener { documents ->
-                    val reviewsList = documents.mapNotNull { it.toObject(Review::class.java) }
-                    
+                    val initialReviewsList =
+                        documents.mapNotNull { it.toObject(Review::class.java) }
+
+                    // Filter for bad words
+                    val reviewsList = initialReviewsList.map { review ->
+                        if (isReviewInappropriate(review.review)) {
+                            review.copy(review = "Reviews containing bad words are automatically filtered")
+                        } else {
+                            review
+                        }
+                    }
+
+
                     val reviewsWithPictures = Array<Review?>(reviewsList.size) { null }
                     var completedFetches = 0
                     val totalReviews = reviewsList.size
-                    
+
                     if (totalReviews == 0) {
                         reviews.value = reviewsList
                         areReviewsLoading.value = false
                         return@addOnSuccessListener
                     }
-                    
+
                     reviewsList.forEachIndexed { index, review ->
                         if (review.reviewerId.isEmpty()) {
                             reviewsWithPictures[index] = review
                             completedFetches++
-                            
+
                             if (completedFetches == totalReviews) {
                                 reviews.value = reviewsWithPictures.filterNotNull().toList()
                                 areReviewsLoading.value = false
@@ -348,15 +491,17 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
                         } else {
                             firestore?.collection("Users")?.document(review.reviewerId)?.get()
                                 ?.addOnSuccessListener { userDoc ->
-                                    val currentUsername = userDoc.getString("username") ?: review.reviewerName
-                                    val profilePictureUrl = userDoc.getString("profilePictureUrl") ?: review.profilePictureUrl
+                                    val currentUsername =
+                                        userDoc.getString("username") ?: review.reviewerName
+                                    val profilePictureUrl = userDoc.getString("profilePictureUrl")
+                                        ?: review.profilePictureUrl
                                     val updatedReview = review.copy(
                                         reviewerName = currentUsername,
                                         profilePictureUrl = profilePictureUrl
                                     )
                                     reviewsWithPictures[index] = updatedReview
                                     completedFetches++
-                                    
+
                                     if (completedFetches == totalReviews) {
                                         reviews.value = reviewsWithPictures.filterNotNull()
                                         areReviewsLoading.value = false
@@ -365,7 +510,7 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
                                 ?.addOnFailureListener {
                                     reviewsWithPictures[index] = review
                                     completedFetches++
-                                    
+
                                     if (completedFetches == totalReviews) {
                                         reviews.value = reviewsWithPictures.filterNotNull()
                                         areReviewsLoading.value = false
@@ -391,14 +536,15 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
     open fun checkIfUserHasRated(gameId: Int) {
         if (userId == null) return
         try {
-            firestore?.collection("Reviews")?.document(gameId.toString())?.collection("game_reviews")?.document(userId)?.get()
+            firestore?.collection("Reviews")?.document(gameId.toString())
+                ?.collection("game_reviews")?.document(userId)?.get()
                 ?.addOnSuccessListener { document ->
                     hasRated.value = document.exists()
                 }
                 ?.addOnFailureListener { exception ->
-                        val errorMessage = handleError(exception, "Failed to check rating status")
-                        Log.e(TAG, errorMessage, exception)
-                    }
+                    val errorMessage = handleError(exception, "Failed to check rating status")
+                    Log.e(TAG, errorMessage, exception)
+                }
         } catch (e: Exception) {
             val errorMessage = handleError(e, "Failed to check rating status")
             Log.e(TAG, errorMessage, e)
@@ -452,9 +598,27 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
 class PreviewGameViewModel : GameViewModel(inPreview = true) {
     init {
         val previewGames = listOf(
-            Game(id = 1, name = "The Witcher 3: Wild Hunt", background_image = "https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg", rating = 4.7, genres = listOf(GameGenre("Action"), GameGenre("RPG"))),
-            Game(id = 2, name = "Red Dead Redemption 2", background_image = "https://media.rawg.io/media/games/511/5118aff5091cb3efec399c808f8c598f.jpg", rating = 4.8, genres = listOf(GameGenre("Action"), GameGenre("Adventure"))),
-            Game(id = 3, name = "Grand Theft Auto V", background_image = "https://media.rawg.io/media/games/456/456dea5e1c7e3cd07060c14e96612001.jpg", rating = 4.5, genres = listOf(GameGenre("Action"), GameGenre("Adventure")))
+            Game(
+                id = 1,
+                name = "The Witcher 3: Wild Hunt",
+                background_image = "https://media.rawg.io/media/games/618/618c2031a07bbff6b4f611f10b6bcdbc.jpg",
+                rating = 4.7,
+                genres = listOf(GameGenre("Action"), GameGenre("RPG"))
+            ),
+            Game(
+                id = 2,
+                name = "Red Dead Redemption 2",
+                background_image = "https://media.rawg.io/media/games/511/5118aff5091cb3efec399c808f8c598f.jpg",
+                rating = 4.8,
+                genres = listOf(GameGenre("Action"), GameGenre("Adventure"))
+            ),
+            Game(
+                id = 3,
+                name = "Grand Theft Auto V",
+                background_image = "https://media.rawg.io/media/games/456/456dea5e1c7e3cd07060c14e96612001.jpg",
+                rating = 4.5,
+                genres = listOf(GameGenre("Action"), GameGenre("Adventure"))
+            )
         )
         games.value = mapOf(
             "Trending" to previewGames,
@@ -462,6 +626,7 @@ class PreviewGameViewModel : GameViewModel(inPreview = true) {
             "Adventure" to previewGames
         )
     }
+
     override fun isFavorite(gameId: Int): Boolean = false
     override fun fetchGames() {}
     override fun fetchGameDetails(gameId: Int) {
@@ -488,6 +653,7 @@ class PreviewGameViewModel : GameViewModel(inPreview = true) {
             isGameDetailsLoading.value = false
         }
     }
+
     override fun fetchRelatedGames(genreSlug: String) {}
     override fun fetchReviews(gameId: Int, context: Context) {}
     override fun checkIfUserHasRated(gameId: Int) {}

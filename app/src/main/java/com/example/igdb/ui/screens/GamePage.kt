@@ -86,6 +86,7 @@ import com.example.igdb.data.Platform
 import com.example.igdb.data.PlatformEntry
 import com.example.igdb.data.Requirements
 import com.example.igdb.data.Review
+import com.example.igdb.data.ShortScreenshot
 import com.example.igdb.ui.activities.GameCard
 import com.example.igdb.ui.theme.Gold
 import com.example.igdb.ui.theme.IGDBTheme
@@ -107,7 +108,8 @@ fun GamePage(
     val error by viewModel.gameDetailsError
     val isRefreshing by viewModel.isLoading
 
-    val pullRefreshState = rememberPullRefreshState(isRefreshing, { viewModel.fetchGameDetails(gameId) })
+    val pullRefreshState =
+        rememberPullRefreshState(isRefreshing, { viewModel.fetchGameDetails(gameId) })
 
     LaunchedEffect(gameId) {
         viewModel.fetchGameDetails(gameId)
@@ -123,7 +125,7 @@ fun GamePage(
 
                 error != null -> {
                     ErrorDisplay(
-                        errorMessage = error ?: "An error occurred",
+                        errorMessage = error ?: stringResource(R.string.an_error_occurred),
                         onRetry = { viewModel.fetchGameDetails(gameId) }
                     )
                 }
@@ -138,7 +140,11 @@ fun GamePage(
                     )
                 }
             }
-            PullRefreshIndicator(isRefreshing, pullRefreshState, Modifier.align(Alignment.TopCenter))
+            PullRefreshIndicator(
+                isRefreshing,
+                pullRefreshState,
+                Modifier.align(Alignment.TopCenter)
+            )
         }
     }
 }
@@ -282,7 +288,7 @@ fun ExpandableText(
     var isExpanded by remember { mutableStateOf(false) }
     Box(
         modifier = Modifier
-            .padding(start = 12.dp, end = 16.dp, bottom = 12.dp)
+            .padding(start = 12.dp, end = 16.dp, bottom = 8.dp)
             .animateContentSize()
     ) {
         Text(
@@ -300,9 +306,15 @@ fun ExpandableText(
 }
 
 
-//back and add to favourites buttons
+// the back an add to favourites buttons
 @Composable
-fun TopButtons(modifier: Modifier = Modifier, onBackClicked: () -> Unit, game: Game, viewModel: GameViewModel, context: android.content.Context) {
+fun TopButtons(
+    modifier: Modifier = Modifier,
+    onBackClicked: () -> Unit,
+    game: Game,
+    viewModel: GameViewModel,
+    context: android.content.Context
+) {
     val isFavorite = viewModel.isFavorite(game.id)
 
     Row(
@@ -327,7 +339,7 @@ fun TopButtons(modifier: Modifier = Modifier, onBackClicked: () -> Unit, game: G
         }
 
         Button(
-            onClick = {viewModel.toggleFavorite(game, context)},
+            onClick = { viewModel.toggleFavorite(game, context) },
             shape = CircleShape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.surface,
@@ -336,8 +348,8 @@ fun TopButtons(modifier: Modifier = Modifier, onBackClicked: () -> Unit, game: G
             modifier = Modifier.size(48.dp)
         ) {
             Icon(
-                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Default.FavoriteBorder ,
-                contentDescription = null ,
+                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Default.FavoriteBorder,
+                contentDescription = null,
                 tint = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
             )
 
@@ -346,7 +358,7 @@ fun TopButtons(modifier: Modifier = Modifier, onBackClicked: () -> Unit, game: G
 }
 
 
-//the card under the game image which contains all its info
+//the card under the game image which contains all it's info
 @Composable
 fun InfoCard(
     modifier: Modifier = Modifier,
@@ -374,6 +386,7 @@ fun InfoCard(
                 .padding(start = 12.dp, top = 16.dp, bottom = 12.dp)
         )
         ExpandableText(text = description, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        GameScreenshots(screenshots = game.short_screenshots ?: emptyList())
         RelatedGames(
             viewModel = viewModel,
             game = game,
@@ -707,7 +720,7 @@ fun GameDetailsShimmer() {
                     .background(Color.Gray)
             )
             Spacer(modifier = Modifier.height(16.dp))
-            Column(modifier = Modifier.padding(horizontal = 12.dp)){
+            Column(modifier = Modifier.padding(horizontal = 12.dp)) {
                 Box(
                     modifier = Modifier
                         .width(260.dp)
@@ -738,7 +751,6 @@ fun GameDetailsShimmer() {
         }
     }
 }
-
 
 
 //preview to show the game details page
@@ -779,7 +791,12 @@ fun GameDetailsPreview() {
 //a sheet which contains the review and rating fields
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BottomSheet(modifier: Modifier = Modifier, gameId: Int, viewModel: GameViewModel, onDismiss: () -> Unit) {
+fun BottomSheet(
+    modifier: Modifier = Modifier,
+    gameId: Int,
+    viewModel: GameViewModel,
+    onDismiss: () -> Unit
+) {
     val sheetState = rememberModalBottomSheetState()
     var review by remember { mutableStateOf("") }
     var rate by remember { mutableStateOf("") }
@@ -861,8 +878,10 @@ fun BottomSheet(modifier: Modifier = Modifier, gameId: Int, viewModel: GameViewM
                         viewModel.addReview(gameId, rate, review, context)
                         onDismiss()
                     } else {
-                        Toast.makeText(context,
-                            context.getString(R.string.please_fill_all_fields), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.please_fill_all_fields), Toast.LENGTH_SHORT
+                        ).show()
                     }
                 },
                 colors = ButtonDefaults.buttonColors(
@@ -910,7 +929,7 @@ fun ErrorDisplay(
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Oops! Something went wrong",
+                text = stringResource(R.string.oops_something_went_wrong),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
@@ -933,7 +952,7 @@ fun ErrorDisplay(
                 modifier = Modifier.padding(horizontal = 16.dp)
             ) {
                 Text(
-                    text = "Try Again",
+                    text = stringResource(R.string.try_again),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium
                 )
@@ -941,3 +960,42 @@ fun ErrorDisplay(
         }
     }
 }
+
+@Composable
+fun GameScreenshots(screenshots: List<ShortScreenshot>) {
+    Column {
+        Text(
+            text = stringResource(R.string.screenshots),
+            color = MaterialTheme.colorScheme.onSurface,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.SemiBold,
+            fontFamily = FontFamily.SansSerif,
+            modifier = Modifier.padding(start = 12.dp, bottom = 12.dp)
+        )
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(screenshots) { screenshot ->
+                Card(
+                    modifier = Modifier
+                        .width(200.dp)
+                        .height(120.dp),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Image(
+                        painter = rememberAsyncImagePainter(
+                            model = screenshot.image,
+                            placeholder = painterResource(R.drawable.bg),
+                        ),
+                        contentDescription = "Screenshot",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
