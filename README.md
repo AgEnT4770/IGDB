@@ -19,12 +19,19 @@ A game surfing app that includes game reviews, descriptions, requirements, and s
 ## Week 1 – Project Setup & Core UI :
 
 Goals:
+
 	•	Set up project structure in Android Studio.
+	
 	•	Configure Gradle dependencies (Jetpack Compose, Retrofit/OkHttp, Coroutines, Coil/Glide, etc.).
+	
 	•	Define app architecture (Clean Architecture). 
+	
 	•	Build core screens with Compose:
+	
 	•	Home Screen (list of games)
+	
 	•	Game Details Screen (basic layout)
+	
 	•	Navigation setup with Navigation-Compose.
 
 ✅ Deliverable: Functional app with navigation and mock UI for game list & details.
@@ -32,11 +39,17 @@ Goals:
 ## Week 2 – API Integration & Data Layer
 
 Goals:
+
 	•	Connect to the chosen API (RAWG API).
+	
 	•	Implement Retrofit for network calls.
+	
 	•	Set up data layer (Repositories, Models).
+	
 	•	Use Coroutines + Flow for async data.
+	
 	•	Replace mock data with real API responses.
+	
 	•	Implement error handling & loading states.
 
 ✅ Deliverable: Game list fetched from API and displayed in the Home Screen and Game Page Screen.
@@ -44,9 +57,13 @@ Goals:
 ## Week 3 – Features & State Management
 
 Goals:
+
 	•	Implement search functionality (search games by name).
+	
 	•	Add categories for games by genres.
+	
 	•	Improve UI with Material3 design.
+	
 	•	Apply proper state handling (using ViewModel).
 
 ✅ Deliverable: Searchable game list with smooth scrolling and polished UI.
@@ -54,11 +71,17 @@ Goals:
 ## Week 4 – Testing, Polish & Deployment
 
 Goals:
+
 	•	Unit tests for ViewModel & Repository.
+
 	•	UI tests with Compose Testing.
+	
 	•	Optimize performance (lazy lists, image loading).
+	
 	•	Improve UX (shimmer loading, error dialogs).
+	
 	•	Add splash screen & app icon.
+	
 	•	Prepare Play Store-ready build (if needed).
 
 ✅ Deliverable: Fully functional, tested, and polished Game Discovery app.
