@@ -75,6 +75,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -294,7 +295,7 @@ fun OfflineBanner(modifier: Modifier = Modifier) {
             )
             Spacer(modifier = Modifier.width(10.dp))
             Text(
-                text = "You're offline. Some features may not work.",
+                text = "You'''re offline. Some features may not work.",
                 color = Color.White,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
@@ -396,7 +397,8 @@ fun MainScreen(navController: NavController, gameViewModel: GameViewModel) { // 
                             Text(
                                 navItems[pagerState.currentPage],
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.testTag("top_app_bar_title")
                             )
                         }
                     },
@@ -417,6 +419,7 @@ fun MainScreen(navController: NavController, gameViewModel: GameViewModel) { // 
                 navItems.forEachIndexed { index, item ->
                     val isSelected = pagerState.currentPage == index
                     NavigationBarItem(
+                        modifier = Modifier.testTag("${item}_tab"),
                         icon = { Icon(navIcons[index], contentDescription = item, modifier = Modifier.size(28.dp)) },
                         label = { Text(item) },
                         selected = isSelected,
@@ -671,6 +674,7 @@ fun GameCard(game: Game, onGameClicked: (Int) -> Unit) {
         modifier = Modifier
             .width(120.dp)
             .clickable { onGameClicked(game.id) }
+            .testTag("game_card")
     ) {
         Box {
             Image(
