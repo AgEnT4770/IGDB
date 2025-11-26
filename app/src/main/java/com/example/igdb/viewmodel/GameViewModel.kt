@@ -349,34 +349,34 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
         }
     }
 
-    fun searchGames(query: String) {
-        searchJob?.cancel()
-        searchJob = viewModelScope.launch {
-            delay(300) // Debounce
-            isLoading.value = true
-            try {
-                if (query.isNotBlank()) {
-                    val response = apiService.getGames(
-                        apiKey = "6e5ea525d41242d3b765b9e83eba84e7",
-                        search = query,
-                        pageSize = 20
-                    )
-                    searchResults.value = response.results
-                } else {
-                    searchResults.value = emptyList()
-                }
-            } catch (e: Exception) {
-                val errorMessage = handleError(e, "Failed to search games")
-                Log.e(TAG, errorMessage, e)
-                if (e is UnknownHostException || e is ConnectException || e is SocketTimeoutException) {
-                    Log.w(TAG, "Network error - you may be offline")
-                }
-                searchResults.value = emptyList()
-            } finally {
-                isLoading.value = false
-            }
-        }
-    }
+//    fun searchGames(query: String) {
+//        searchJob?.cancel()
+//        searchJob = viewModelScope.launch {
+//            delay(300) // Debounce
+//            isLoading.value = true
+//            try {
+//                if (query.isNotBlank()) {
+//                    val response = apiService.getGames(
+//                        apiKey = "6e5ea525d41242d3b765b9e83eba84e7",
+//                        search = query,
+//                        pageSize = 20
+//                    )
+//                    searchResults.value = response.results
+//                } else {
+//                    searchResults.value = emptyList()
+//                }
+//            } catch (e: Exception) {
+//                val errorMessage = handleError(e, "Failed to search games")
+//                Log.e(TAG, errorMessage, e)
+//                if (e is UnknownHostException || e is ConnectException || e is SocketTimeoutException) {
+//                    Log.w(TAG, "Network error - you may be offline")
+//                }
+//                searchResults.value = emptyList()
+//            } finally {
+//                isLoading.value = false
+//            }
+//        }
+//    }
 
     fun setInitialGenreForDiscover(genre: Genre) {
         initialDiscoverGenre.value = genre
