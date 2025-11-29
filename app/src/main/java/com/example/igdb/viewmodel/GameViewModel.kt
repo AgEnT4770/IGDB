@@ -34,9 +34,7 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
         .create(RawgApiService::class.java)
 
     val games = mutableStateOf<Map<String, List<Game>>>(emptyMap())
-    val searchResults = mutableStateOf<List<Game>>(emptyList())
     val isLoading = mutableStateOf(false)
-    private var searchJob: Job? = null
     val gameDetails = mutableStateOf<Game?>(null)
     val isGameDetailsLoading = mutableStateOf(false)
     val gameDetailsError = mutableStateOf<String?>(null)
@@ -241,18 +239,30 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
 
     fun toggleFavorite(game: Game, context: Context) {
         if (userId == null) return
+
+        val isCurrentlyFavorite = isFavorite(game.id)
+        val originalFavorites = favoriteGames.value.toList()
+
+        // Optimistic Update
+        if (isCurrentlyFavorite) {
+            favoriteGames.value = favoriteGames.value.filter { it.id != game.id }
+        } else {
+            favoriteGames.value = favoriteGames.value + game
+        }
+
         try {
             val favoriteRef =
                 firestore?.collection("Users")?.document(userId)?.collection("favorites")
                     ?.document(game.id.toString())
-            if (isFavorite(game.id)) {
+
+            if (isCurrentlyFavorite) {
                 favoriteRef?.delete()
                     ?.addOnSuccessListener {
-                        Toast.makeText(context, "Removed from Favourites", Toast.LENGTH_SHORT)
-                            .show()
-                        fetchFavorites()
+                        Toast.makeText(context, "Removed from Favourites", Toast.LENGTH_SHORT).show()
                     }
                     ?.addOnFailureListener { exception ->
+                        // Revert on failure
+                        favoriteGames.value = originalFavorites
                         val errorMessage = handleError(exception, "Failed to remove from favorites")
                         Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
                         Log.e(TAG, errorMessage, exception)
@@ -267,15 +277,17 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
                 favoriteRef?.set(gameData)
                     ?.addOnSuccessListener {
                         Toast.makeText(context, "Added to Favourites", Toast.LENGTH_SHORT).show()
-                        fetchFavorites()
                     }
                     ?.addOnFailureListener { exception ->
+                        // Revert on failure
+                        favoriteGames.value = originalFavorites
                         val errorMessage = handleError(exception, "Failed to add to favorites")
                         Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
                         Log.e(TAG, errorMessage, exception)
                     }
             }
         } catch (e: Exception) {
+            favoriteGames.value = originalFavorites
             val errorMessage = handleError(e, "Failed to update favorites")
             Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
             Log.e(TAG, errorMessage, e)
@@ -348,35 +360,6 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
             }
         }
     }
-
-//    fun searchGames(query: String) {
-//        searchJob?.cancel()
-//        searchJob = viewModelScope.launch {
-//            delay(300) // Debounce
-//            isLoading.value = true
-//            try {
-//                if (query.isNotBlank()) {
-//                    val response = apiService.getGames(
-//                        apiKey = "6e5ea525d41242d3b765b9e83eba84e7",
-//                        search = query,
-//                        pageSize = 20
-//                    )
-//                    searchResults.value = response.results
-//                } else {
-//                    searchResults.value = emptyList()
-//                }
-//            } catch (e: Exception) {
-//                val errorMessage = handleError(e, "Failed to search games")
-//                Log.e(TAG, errorMessage, e)
-//                if (e is UnknownHostException || e is ConnectException || e is SocketTimeoutException) {
-//                    Log.w(TAG, "Network error - you may be offline")
-//                }
-//                searchResults.value = emptyList()
-//            } finally {
-//                isLoading.value = false
-//            }
-//        }
-//    }
 
     fun setInitialGenreForDiscover(genre: Genre) {
         initialDiscoverGenre.value = genre

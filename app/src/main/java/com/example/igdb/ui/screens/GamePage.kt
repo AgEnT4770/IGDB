@@ -333,7 +333,7 @@ fun TopButtons(
         ) {
             Icon(
                 imageVector = Icons.Default.ArrowBackIosNew,
-                contentDescription = null,
+                contentDescription = "Back",
                 tint = MaterialTheme.colorScheme.onSurface,
             )
 
@@ -350,7 +350,7 @@ fun TopButtons(
         ) {
             Icon(
                 imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = null,
+                contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
                 tint = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
             )
 
