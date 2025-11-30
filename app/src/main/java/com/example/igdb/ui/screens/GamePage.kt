@@ -67,6 +67,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -332,7 +333,7 @@ fun TopButtons(
         ) {
             Icon(
                 imageVector = Icons.Default.ArrowBackIosNew,
-                contentDescription = null,
+                contentDescription = "Back",
                 tint = MaterialTheme.colorScheme.onSurface,
             )
 
@@ -349,7 +350,7 @@ fun TopButtons(
         ) {
             Icon(
                 imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = null,
+                contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
                 tint = if (isFavorite) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
             )
 
@@ -384,6 +385,7 @@ fun InfoCard(
             fontFamily = FontFamily.SansSerif,
             modifier = Modifier
                 .padding(start = 12.dp, top = 16.dp, bottom = 12.dp)
+                .testTag("about_this_game_title")
         )
         ExpandableText(text = description, color = MaterialTheme.colorScheme.onSurfaceVariant)
         GameScreenshots(screenshots = game.short_screenshots ?: emptyList())

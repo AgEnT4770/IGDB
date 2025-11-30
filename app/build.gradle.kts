@@ -71,4 +71,17 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore")
     // Cloudinary for free image storage (replaces Firebase Storage)
     implementation("com.cloudinary:cloudinary-android:2.3.1")
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    testImplementation("io.mockk:mockk:1.13.8")
+    testImplementation("androidx.arch.core:core-testing:2.2.0")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+
+    implementation("com.squareup.retrofit2:converter-moshi:2.9.0")
+    implementation("com.squareup.moshi:moshi:1.15.0")
+    implementation("com.squareup.moshi:moshi-kotlin:1.15.0")
+
+    testImplementation("org.jetbrains.kotlin:kotlin-test:1.9.0")
+
 }

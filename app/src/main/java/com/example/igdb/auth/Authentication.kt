@@ -25,7 +25,7 @@ class Authentication(private val context: Context) {
     /**
      * Handles network and Firebase errors gracefully
      */
-    private fun handleError(exception: Exception?, defaultMessage: String): String {
+    public fun handleError(exception: Exception?, defaultMessage: String): String {
         return when (exception) {
             is UnknownHostException -> {
                 Log.e(TAG, "No internet connection", exception)
