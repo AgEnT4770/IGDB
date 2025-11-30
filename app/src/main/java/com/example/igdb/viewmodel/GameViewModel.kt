@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.igdb.auth.BadWordsFilter
 import com.example.igdb.data.Game
 import com.example.igdb.data.GameGenre
 import com.example.igdb.data.Genre
@@ -50,108 +51,7 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
     }
 
 
-    private val badWords = setOf(
-        "fuck", "fucking", "fucker", "fuckoff", "motherfucker",
-        "shit", "bullshit", "shithead",
-        "bitch", "bitches", "sonofabitch",
-        "ass", "asshole", "dumbass", "jackass",
-        "bastard",
-        "cunt",
-        "dick", "dickhead",
-        "pussy",
-        "whore", "slut",
-        "moron", "idiot", "stupid",
-        "crap",
-        "jerk",
-        "loser",
-        "retard",
-        "fag", "faggot",
-        "hoe",
 
-        "fck", "fcuk", "fuk",
-        "sht", "sh1t",
-        "biatch",
-        "b!tch", "b1tch",
-        "a$$", "a55",
-        "d1ck",
-        "c0ck",
-
-        "عرص",
-        "كسمك",
-        "كسها",
-        "خول",
-        "متناك",
-        "زبي",
-        "زب",
-        "منيك",
-        "قحب",
-        "قحبة",
-        "شرموط",
-        "شرموطة",
-        "وسخ",
-        "حيوان",
-        "غبي",
-        "مغفل",
-        "سيس",
-        "متخلف",
-        "كلب",
-        "يا كلب",
-        "ابن الوسخة",
-        "ابن المتناك",
-        "ابن الشرموطة",
-        "منيكك",
-        "طيز",
-        "متناكين",
-        "ولاد الكلب",
-        "وسخة",
-        "وسخين",
-        "زبير",
-
-        "يا ابن المرة",
-        "يا ابن الكلب",
-        "يا ابن الشرموطة",
-        "متناك",
-        "منتاك",
-        "عرص ابن عرص",
-        "كسمكوا",
-        "كسختك",
-        "يا معفن",
-        "يا وسخ",
-        "قرف",
-        "حمار",
-        "حمار انت",
-        "طياز",
-        "طيظ",
-        "طياظ",
-
-        "غبي", "هبيل", "تافه", "مسطول"
-        ,"بتطس","بتتس","مدعر","مومس",
-        "أهطل","اهطل","اهبل","أهبل",
-
-
-        "3rs", "ars",
-        "kosomak", "kos omak",
-        "kosomko",
-        "manyak", "manyak",
-        "sharmouta", "sharmoota",
-        "kleb", "kalb",
-        "7omar", "homar",
-        "ghabi", "ghaby",
-        "m5n2", "mkhanza",
-        "kos", "ks",
-
-        // Alternate spellings
-        "kosk", "kosmk", "ksmk",
-        "nk", "mnek",
-        "tiz", "tyz",
-        "zpy","zpi"
-    )
-
-
-    private fun isReviewInappropriate(text: String): Boolean {
-        val lowercasedText = text.lowercase()
-        return badWords.any { badWord -> lowercasedText.contains(badWord) }
-    }
 
     private val firestore = if (inPreview) null else FirebaseFirestore.getInstance()
     private val auth = if (inPreview) null else FirebaseAuth.getInstance()
@@ -443,8 +343,9 @@ open class GameViewModel(private val inPreview: Boolean = false) : ViewModel() {
                         documents.mapNotNull { it.toObject(Review::class.java) }
 
                     // Filter for bad words
+                    val filter = BadWordsFilter()
                     val reviewsList = initialReviewsList.map { review ->
-                        if (isReviewInappropriate(review.review)) {
+                        if (filter.isReviewInappropriate(review.review)) {
                             review.copy(review = "Reviews containing bad words are automatically filtered")
                         } else {
                             review

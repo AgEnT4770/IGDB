@@ -198,8 +198,8 @@ class GameViewModelTest {
         assertNull(viewModel.initialDiscoverGenre.value)
     }
 
-     // Test: PreviewGameViewModel
-     @Test
+    // Test: PreviewGameViewModel
+    @Test
     fun `PreviewGameViewModel should have preview games loaded`() {
         // Given: Preview ViewModel
         val previewViewModel = PreviewGameViewModel()
@@ -251,7 +251,7 @@ class GameViewModelTest {
         assertEquals(1, previewViewModel.gameDetails.value?.id)
     }
 
-     // Test: Game Properties
+    // Test: Game Properties
     @Test
     fun `Game object should have correct properties`() {
         // Given: A Game object
@@ -276,8 +276,8 @@ class GameViewModelTest {
         assertEquals("Action", game.genres?.get(0)?.name)
     }
 
-     // Test: Favorites State Management
-     @Test
+    // Test: Favorites State Management
+    @Test
     fun `favoriteGames should update correctly`() {
         // Given: Initial empty favorites (or preview data)
         // When: Adding games to favorites
@@ -291,7 +291,7 @@ class GameViewModelTest {
         assertTrue(viewModel.favoriteGames.value.contains(game2))
     }
 
-     // Test: Search Results State
+    // Test: Search Results State
     @Test
     fun `searchResults should update correctly`() {
         // Given: Initial empty search results
@@ -321,8 +321,8 @@ class GameViewModelTest {
         assertTrue(viewModel.games.value["Search"]?.isEmpty() == true)
     }
 
-     // Test: Games Map State
-     @Test
+    // Test: Games Map State
+    @Test
     fun `games map should support multiple categories`() {
         // Given: Games map with multiple categories
         val actionGames = listOf(
@@ -346,8 +346,8 @@ class GameViewModelTest {
         assertEquals(1, viewModel.games.value["RPG"]?.size)
     }
 
-     // Test: Loading States
-     @Test
+    // Test: Loading States
+    @Test
     fun `isLoading state should be mutable`() {
         // Given: Initial loading state is false
         assertFalse(viewModel.isLoading.value)
@@ -377,8 +377,8 @@ class GameViewModelTest {
         assertTrue(viewModel.isGameDetailsLoading.value)
     }
 
-     // Test: Error States
-     @Test
+    // Test: Error States
+    @Test
     fun `gameDetailsError should be settable`() {
         // Given: Initial error is null
         assertNull(viewModel.gameDetailsError.value)

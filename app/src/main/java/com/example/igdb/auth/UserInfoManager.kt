@@ -14,12 +14,12 @@ import com.google.firebase.firestore.firestore
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 
-class Authentication(private val context: Context) {
+class UserInfoManager(private val context: Context) {
 
     private val auth: FirebaseAuth = Firebase.auth
 
     companion object {
-        private const val TAG = "Authentication"
+        private const val TAG = "UserInfoManager"
     }
 
     /**
@@ -58,7 +58,6 @@ class Authentication(private val context: Context) {
             }
         }
     }
-
 
 
     fun getCurrentUser(): com.google.firebase.auth.FirebaseUser? {
@@ -703,7 +702,7 @@ class Authentication(private val context: Context) {
                     } else {
                         val errorMessage = handleError(
                             reauthTask.exception,
-                            "Authentication failed. Please check your password."
+                            "UserInfoManager failed. Please check your password."
                         )
                         Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
                         onComplete(false)
@@ -711,7 +710,7 @@ class Authentication(private val context: Context) {
                 }
                 .addOnFailureListener { exception ->
                     val errorMessage =
-                        handleError(exception, "Authentication failed. Please check your password.")
+                        handleError(exception, "UserInfoManager failed. Please check your password.")
                     Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
                     onComplete(false)
                 }
@@ -771,7 +770,7 @@ class Authentication(private val context: Context) {
                     } else {
                         val errorMessage = handleError(
                             reauthTask.exception,
-                            "Authentication failed. Please check your current password."
+                            "UserInfoManager failed. Please check your current password."
                         )
                         Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
                         onComplete(false)
@@ -780,7 +779,7 @@ class Authentication(private val context: Context) {
                 .addOnFailureListener { exception ->
                     val errorMessage = handleError(
                         exception,
-                        "Authentication failed. Please check your current password."
+                        "UserInfoManager failed. Please check your current password."
                     )
                     Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
                     onComplete(false)
