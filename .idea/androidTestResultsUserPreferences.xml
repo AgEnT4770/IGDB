@@ -23,7 +23,9 @@
                 <map>
                   <entry key="Duration" value="90" />
                   <entry key="Medium_Phone_API_36.0" value="120" />
+                  <entry key="Pixel_9_Pro_API_35-ext15" value="120" />
                   <entry key="Tests" value="360" />
+                  <entry key="realme RMX2001" value="120" />
                 </map>
               </option>
             </AndroidTestResultsTableState>

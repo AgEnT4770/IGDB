@@ -58,7 +58,7 @@ class GameViewModelTest {
     fun `initial state should have empty search results`() {
         // Given: A fresh ViewModel
         // Then: search results should be empty
-        assertTrue(viewModel.searchResults.value.isEmpty())
+        assertTrue(viewModel.games.value.isEmpty())
     }
 
 
@@ -295,31 +295,30 @@ class GameViewModelTest {
     @Test
     fun `searchResults should update correctly`() {
         // Given: Initial empty search results
-        assertTrue(viewModel.searchResults.value.isEmpty())
+        assertTrue(viewModel.games.value.isEmpty())
 
         // When: Setting search results
         val game1 = Game(id = 1, name = "Search Result 1", background_image = "", rating = 4.0)
         val game2 = Game(id = 2, name = "Search Result 2", background_image = "", rating = 4.5)
-        viewModel.searchResults.value = listOf(game1, game2)
+        viewModel.games.value = mapOf("Search" to listOf(game1, game2))
 
         // Then: Search results should be updated
-        assertEquals(2, viewModel.searchResults.value.size)
-        assertEquals("Search Result 1", viewModel.searchResults.value[0].name)
-        assertEquals("Search Result 2", viewModel.searchResults.value[1].name)
+         assertEquals(1, viewModel.games.value.keys.size)
+         assertEquals(2, viewModel.games.value["Search"]?.size)
+         assertEquals("Search Result 1", viewModel.games.value["Search"]?.get(0)?.name)
+         assertEquals("Search Result 2", viewModel.games.value["Search"]?.get(1)?.name)
     }
 
     @Test
     fun `clearing searchResults should result in empty list`() {
-        // Given: Search results with games
+        // Given: Games map with a search category
         val game1 = Game(id = 1, name = "Game 1", background_image = "", rating = 4.0)
-        viewModel.searchResults.value = listOf(game1)
-        assertEquals(1, viewModel.searchResults.value.size)
-
-        // When: Clearing search results
-        viewModel.searchResults.value = emptyList()
-
+        viewModel.games.value = mapOf("Search" to listOf(game1))
+        assertEquals(1, viewModel.games.value["Search"]?.size)
+        // When: Clearing the search category
+        viewModel.games.value = mapOf("Search" to emptyList())
         // Then: Should be empty
-        assertTrue(viewModel.searchResults.value.isEmpty())
+        assertTrue(viewModel.games.value["Search"]?.isEmpty() == true)
     }
 
      // Test: Games Map State
